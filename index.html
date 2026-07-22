@@ -625,4 +625,43 @@ function onFrame(time, frame) {
 
     // Пульсация золотого свечения
     galleryRoot.children.forEach(c => {
-      if (c.isLight
+      if (c.isPointLight) {
+        c.intensity = 2.2 + Math.sin(t * 2.2) * 0.8;
+      }
+    });
+  }
+
+  renderer.render(scene, camera);
+}
+
+function onEnd() {
+  renderer.setAnimationLoop(null);
+  if (hitTestSrc) { hitTestSrc.cancel(); hitTestSrc = null; }
+  placed = false;
+  galleryRoot.visible = false;
+  reticle.visible     = false;
+  floorMesh.visible   = false;
+  renderer.domElement.removeEventListener('click', onTap);
+  overlay.style.display   = '';
+  hint.style.display      = 'none';
+  exitBtn.style.display   = 'none';
+  startBtn.disabled       = false;
+  clock.getDelta();
+}
+
+startBtn.addEventListener('click', startAR);
+exitBtn.addEventListener('click', () => xrSession?.end());
+
+function showError(m) {
+  errorMsg.textContent  = m;
+  errorMsg.style.display = 'block';
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
