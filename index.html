@@ -1,8 +1,3 @@
-Да, есть! Это **WebXR через 8th Wall** или **AR.js** — работает в Safari через обычный браузер без приложений.
-
-**Лучшее решение для Safari — AR.js + A-Frame:**
-
-```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -11,851 +6,662 @@
   <title>AR Галерея — 30 лет на службе</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: Arial, sans-serif; }
 
-    #loadingScreen {
+    #overlay {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.95);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      z-index: 9999; color: white;
+      background: rgba(0,0,0,0.9);
+      color: white; z-index: 10;
     }
-    #loadingScreen h1 {
-      font-family: Arial, sans-serif;
-      font-size: 1.6rem; margin-bottom: 10px;
-      background: linear-gradient(135deg, #f5d078, #c8a84b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-align: center;
-    }
-    #loadingScreen p {
-      font-family: Arial, sans-serif;
-      font-size: 0.9rem; color: #aaa;
-      text-align: center; max-width: 300px;
-      line-height: 1.6; margin-bottom: 24px;
-    }
-    #startBtn {
-      padding: 14px 40px; font-size: 1rem;
-      background: linear-gradient(135deg, #c8a84b, #f5d078);
-      color: #1a1a1a; border: none; border-radius: 50px;
-      font-weight: bold; cursor: pointer;
-      font-family: Arial, sans-serif;
-      box-shadow: 0 4px 20px rgba(200,168,75,0.5);
-    }
+    #overlay h1 { font-size: 1.8rem; margin-bottom: 8px; text-align: center; }
+    #overlay p  { font-size: 0.95rem; color: #aaa; margin-bottom: 24px; text-align: center; max-width: 320px; line-height: 1.5; }
 
-    #ui {
-      position: fixed; bottom: 30px; left: 50%;
-      transform: translateX(-50%);
-      z-index: 999; display: none;
-      flex-direction: column; align-items: center; gap: 12px;
-    }
-    #hint {
-      background: rgba(0,0,0,0.7);
-      color: white; padding: 10px 22px;
-      border-radius: 20px; font-size: 0.85rem;
-      font-family: Arial, sans-serif;
-      border: 1px solid rgba(255,255,255,0.2);
-      text-align: center; max-width: 80vw;
-    }
-    #placeBtn {
-      padding: 13px 36px; font-size: 1rem;
+    #startBtn {
+      padding: 14px 40px; font-size: 1.1rem;
       background: linear-gradient(135deg, #c8a84b, #f5d078);
       color: #1a1a1a; border: none; border-radius: 50px;
-      font-weight: bold; cursor: pointer;
-      font-family: Arial, sans-serif;
-      box-shadow: 0 4px 16px rgba(200,168,75,0.5);
+      cursor: pointer; font-weight: bold;
+      box-shadow: 0 4px 20px rgba(200,168,75,0.4);
+    }
+    #startBtn:disabled { background: #555; color: #999; box-shadow: none; cursor: default; }
+
+    #hint {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.65); color: white;
+      padding: 10px 22px; border-radius: 20px;
+      font-size: 0.9rem; z-index: 5; display: none; text-align: center;
+      border: 1px solid rgba(255,255,255,0.15);
     }
     #exitBtn {
       position: fixed; top: 20px; right: 20px;
-      background: rgba(0,0,0,0.6); color: white;
+      background: rgba(0,0,0,0.5); color: white;
       border: 1px solid rgba(255,255,255,0.3);
       padding: 8px 18px; border-radius: 20px;
-      cursor: pointer; font-size: 0.9rem;
-      font-family: Arial, sans-serif; z-index: 999;
-      display: none;
+      cursor: pointer; font-size: 0.9rem; z-index: 5; display: none;
     }
-    #modeBadge {
-      position: fixed; top: 20px; left: 20px;
-      background: rgba(0,0,0,0.6);
-      color: #f5d078; font-size: 0.75rem;
-      padding: 6px 14px; border-radius: 20px;
-      border: 1px solid rgba(245,208,120,0.3);
-      font-family: Arial, sans-serif;
-      z-index: 999; display: none;
-    }
-
-    /* Курсор-прицел для размещения */
-    #cursor {
-      position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 60px; height: 60px;
-      border: 3px solid rgba(245,208,120,0.8);
-      border-radius: 50%;
-      z-index: 998; display: none;
-      pointer-events: none;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    #cursor::after {
-      content: '';
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 8px; height: 8px;
-      background: #f5d078;
-      border-radius: 50%;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      50%       { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); }
-    }
-
-    a-scene { z-index: 0; }
+    #errorMsg { color: #f77; margin-top: 14px; font-size: 0.9rem; display: none; text-align: center; max-width: 300px; }
   </style>
 </head>
 <body>
 
-<!-- Загрузочный экран -->
-<div id="loadingScreen">
+<div id="overlay">
   <h1>🏛️ AR Галерея<br/>30 лет на службе</h1>
-  <p>
-    Работает в <strong style="color:#f5d078">Safari, Chrome, Яндекс</strong> браузере.<br/>
-    Разрешите доступ к камере при запросе.
-  </p>
+  <p>Наведите камеру на пол. Нажмите, чтобы разместить галерею.</p>
   <button id="startBtn">✨ Запустить AR</button>
+  <p id="errorMsg"></p>
 </div>
 
-<!-- Прицел -->
-<div id="cursor"></div>
-
-<!-- UI -->
-<div id="ui">
-  <div id="hint">📱 Наведите камеру на поверхность и нажмите кнопку</div>
-  <button id="placeBtn">📍 Разместить галерею</button>
-</div>
-
+<div id="hint"></div>
 <button id="exitBtn">✕ Выйти</button>
-<div id="modeBadge">📷 AR Галерея</div>
 
-<!-- A-Frame + AR.js -->
-<script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js"></script>
 
 <script>
+new WebXRPolyfill();
+
 // ════════════════════════════════════════════════════════
-//  НАСТРОЙКИ ФОТО
+//  НАСТРОЙКИ
 // ════════════════════════════════════════════════════════
 const PHOTOS = [
-  { url: 'photos/photo1.jpg',  label: '1994  •  Начало пути'   },
-  { url: 'photos/photo2.jpg',  label: '1997  •  Первые успехи' },
-  { url: 'photos/photo3.jpg',  label: '2000  •  Новый век'     },
-  { url: 'photos/photo4.jpg',  label: '2005  •  ЛПП'           },
-  { url: 'photos/photo5.jpg',  label: '2008  •  ЛПП'           },
-  { url: 'photos/photo6.jpg',  label: '2011  •  ЛПП'           },
-  { url: 'photos/photo7.jpg',  label: '2014  •  ЛПП'           },
-  { url: 'photos/photo8.jpg',  label: '2018  •  ЛПП'           },
-  { url: 'photos/photo9.jpg',  label: '2021  •  ЛПП'           },
-  { url: 'photos/photo10.jpg', label: '2024  •  30 лет!'       },
+  { url: 'photos/photo1.jpg',  label: '1994 год  •  Начало пути' },
+  { url: 'photos/photo2.jpg',  label: '1997 год  •  Первые успехи' },
+  { url: 'photos/photo3.jpg',  label: '2000 год  •  Новый век' },
+  { url: 'photos/photo4.jpg',  label: '2005 год  •  ЛПП' },
+  { url: 'photos/photo5.jpg',  label: '2008 год  •  ЛПП' },
+  { url: 'photos/photo6.jpg',  label: '2011 год  •  ЛПП' },
+  { url: 'photos/photo7.jpg',  label: '2014 год  •  ЛПП' },
+  { url: 'photos/photo8.jpg',  label: '2018 год  •  ЛПП' },
+  { url: 'photos/photo9.jpg',  label: '2021 год  •  ЛПП' },
+  { url: 'photos/photo10.jpg', label: '2024 год  •  30 лет!' },
 ];
 
-const SPACING   = 0.95;
-const SIDE_DIST = 0.85;
-const PHOTO_W   = 0.52;
-const FRAME_T   = 0.022;
-const STAND_H   = 1.4;
-
+const SPACING   = 0.95;  // расстояние между стендами
+const SIDE_DIST = 0.85;  // отступ от центра до ряда
+const PHOTO_W   = 0.52;  // базовая ширина фото (высота подстраивается под соотношение)
+const FRAME_T   = 0.022; // толщина рамки
+const STAND_H   = 1.4;   // ↑ поднято на 50 см (было 0.9)
 // ════════════════════════════════════════════════════════
-//  ОПРЕДЕЛЯЕМ ПОДДЕРЖКУ WebXR
-// ════════════════════════════════════════════════════════
-let useWebXR = false;
 
-async function checkWebXR() {
-  if (navigator.xr) {
-    useWebXR = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-  }
-  return useWebXR;
+// ─── Renderer ────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.outputEncoding    = THREE.sRGBEncoding;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.4;
+document.body.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 30);
+
+// ─── Освещение — ЯРКОЕ ───────────────────────────────────
+
+// 1. Очень сильный ambient — убирает темноту
+const ambient = new THREE.AmbientLight(0xffffff, 2.5);
+scene.add(ambient);
+
+// 2. Hemisphere — небо/земля
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 1.5);
+scene.add(hemi);
+
+// 3. Основной направленный свет
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+sun.position.set(2, 5, 2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.1;
+sun.shadow.camera.far  = 15;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -5;
+sun.shadow.camera.right = sun.shadow.camera.top   =  5;
+scene.add(sun);
+
+// ─── Пол для теней ───────────────────────────────────────
+const floorMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(20, 20).rotateX(-Math.PI/2),
+  new THREE.ShadowMaterial({ opacity: 0.25 })
+);
+floorMesh.receiveShadow = true;
+floorMesh.visible = false;
+scene.add(floorMesh);
+
+// ─── TextureLoader + определение соотношения сторон ──────
+const txLoader = new THREE.TextureLoader();
+
+function loadTextureWithRatio(url) {
+  return new Promise(resolve => {
+    txLoader.load(
+      url,
+      tex => {
+        tex.encoding = THREE.sRGBEncoding;
+        const img    = tex.image;
+        const ratio  = img ? img.width / img.height : 1.0;
+        resolve({ tex, ratio });
+      },
+      undefined,
+      () => {
+        // placeholder если нет файла
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = '#c8a84b';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(16, 16, 480, 480);
+        ctx.fillStyle = '#c8a84b';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('ФОТО', 256, 240);
+        ctx.font = '32px Arial';
+        ctx.fillText(url.split('/').pop(), 256, 300);
+        const t = new THREE.CanvasTexture(canvas);
+        t.encoding = THREE.sRGBEncoding;
+        resolve({ tex: t, ratio: 1.0 });
+      }
+    );
+  });
+}
+
+// ─── Canvas-текст (подписи) ───────────────────────────────
+function makeTextTexture(text, opts = {}) {
+  const {
+    font  = 'bold 36px Arial',
+    color = '#f5d078',
+    w = 512, h = 72
+  } = opts;
+  const c   = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+  ctx.font         = font;
+  ctx.fillStyle    = color;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  // Тонкая тень для читаемости
+  ctx.shadowColor  = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur   = 6;
+  ctx.fillText(text, w/2, h/2);
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  return { texture: t, aspect: w/h };
+}
+
+// ─── Рамка ────────────────────────────────────────────────
+function makeFrame(w, h, t) {
+  const group = new THREE.Group();
+
+  // PBR золотой материал рамки
+  const mat = new THREE.MeshStandardMaterial({
+    color:     new THREE.Color(0xc8a84b),
+    emissive:  new THREE.Color(0x3a2800),
+    emissiveIntensity: 0.15,
+    roughness: 0.25,
+    metalness: 0.95,
+  });
+
+  [
+    { sx: w+t*2, sy: t,   px: 0,      py:  h/2+t/2 },
+    { sx: w+t*2, sy: t,   px: 0,      py: -h/2-t/2 },
+    { sx: t,     sy: h,   px:-w/2-t/2,py: 0 },
+    { sx: t,     sy: h,   px: w/2+t/2,py: 0 },
+  ].forEach(p => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(p.sx, p.sy, t*0.8), mat);
+    m.position.set(p.px, p.py, 0.001);
+    m.castShadow    = true;
+    m.receiveShadow = true;
+    group.add(m);
+  });
+
+  return group;
+}
+
+// ─── Стенд с фото (ждёт загрузки текстуры) ──────────────
+async function makePhotoStand(photoIdx, side) {
+  const { tex, ratio } = await loadTextureWithRatio(PHOTOS[photoIdx].url);
+
+  const pw = PHOTO_W;
+  const ph = pw / ratio;   // ← высота подстраивается под реальное соотношение
+
+  const group = new THREE.Group();
+
+  // Подложка (небольшой сдвиг назад)
+  const backMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1, metalness: 0 });
+  const back    = new THREE.Mesh(new THREE.BoxGeometry(pw + FRAME_T*2.5, ph + FRAME_T*2.5, 0.008), backMat);
+  back.position.z = -0.005;
+  back.receiveShadow = true;
+  group.add(back);
+
+  // Фото
+  const photo = new THREE.Mesh(
+    new THREE.PlaneGeometry(pw, ph),
+    new THREE.MeshStandardMaterial({
+      map: tex,
+      roughness: 0.6,
+      metalness: 0.0,
+      emissive: new THREE.Color(0x111111),
+      emissiveIntensity: 0.05,
+    })
+  );
+  photo.castShadow = photo.receiveShadow = true;
+  group.add(photo);
+
+  // Рамка
+  group.add(makeFrame(pw, ph, FRAME_T));
+
+  // Подпись
+  const { texture: lblTex, aspect: lblAsp } = makeTextTexture(PHOTOS[photoIdx].label, {
+    font: 'bold 34px Arial', color: '#f5d078', w: 512, h: 68
+  });
+  const lblH = 0.065;
+  const lbl  = new THREE.Mesh(
+    new THREE.PlaneGeometry(lblH * lblAsp, lblH),
+    new THREE.MeshBasicMaterial({ map: lblTex, transparent: true, depthWrite: false })
+  );
+  lbl.position.set(0, -ph/2 - 0.065, 0.01);
+  group.add(lbl);
+
+  // ─ Спот над фото ─
+  const spot = new THREE.SpotLight(0xfff8e7, 4.0, 3.0, Math.PI/8, 0.5, 1.2);
+  spot.castShadow = true;
+  spot.shadow.mapSize.set(512, 512);
+  spot.shadow.bias = -0.001;
+  spot.position.set(0, ph * 0.8, 0.5);
+
+  const spotTarget = new THREE.Object3D();
+  spotTarget.position.set(0, 0, 0);
+  group.add(spotTarget);
+  spot.target = spotTarget;
+  group.add(spot);
+
+  // Разворот к зрителю
+  group.rotation.y = side > 0 ? -Math.PI/2 : Math.PI/2;
+
+  return group;
 }
 
 // ════════════════════════════════════════════════════════
-//  СТАРТ
+//  3D ТЕКСТ «30 ЛЕТ / НА СЛУЖБЕ» через ExtrudeGeometry
 // ════════════════════════════════════════════════════════
-document.getElementById('startBtn').addEventListener('click', async () => {
-  document.getElementById('startBtn').disabled = true;
-  document.getElementById('startBtn').textContent = '⏳ Загрузка...';
 
-  await checkWebXR();
-
-  if (useWebXR) {
-    // Chrome Android — запускаем через Three.js + WebXR
-    startThreeJSAR();
-  } else {
-    // Safari / Яндекс / Firefox — запускаем через AR.js
-    startARjs();
-  }
+// PBR-золото — настоящий шейдер
+const GOLD_MAT = new THREE.MeshStandardMaterial({
+  color:            new THREE.Color(0xFFD700),
+  emissive:         new THREE.Color(0x7A5500),
+  emissiveIntensity: 0.2,
+  roughness:        0.15,
+  metalness:        1.0,
+  envMapIntensity:  1.0,
 });
 
-// ════════════════════════════════════════════════════════
-//  РЕЖИМ A: AR.js — Safari, Яндекс, Firefox, Chrome
-//  Использует location-based + marker-less surface detection
-// ════════════════════════════════════════════════════════
+// Простая среда (fake env map через PMREMGenerator)
+function buildEnvMap() {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color(0x222222);
 
-function startARjs() {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('ui').style.display            = 'flex';
-  document.getElementById('exitBtn').style.display       = 'block';
-  document.getElementById('modeBadge').style.display     = 'block';
-  document.getElementById('cursor').style.display        = 'block';
-  document.getElementById('modeBadge').textContent       = '📷 AR.js — Универсальный';
-
-  // Создаём A-Frame сцену динамически
-  const sceneEl = document.createElement('a-scene');
-  sceneEl.setAttribute('embedded', '');
-  sceneEl.setAttribute('arjs', 'sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;');
-  sceneEl.setAttribute('vr-mode-ui', 'enabled: false');
-  sceneEl.setAttribute('renderer', 'logarithmicDepthBuffer: true; precision: medium;');
-  sceneEl.style.cssText = 'position:fixed;inset:0;z-index:1;';
-
-  // Камера
-  const cameraRig = document.createElement('a-entity');
-  cameraRig.setAttribute('id', 'cameraRig');
-
-  const cam = document.createElement('a-camera');
-  cam.setAttribute('id',                  'arCamera');
-  cam.setAttribute('look-controls',       'enabled: false');
-  cam.setAttribute('arjs-look-controls',  'smoothingFactor: 0.1');
-  cam.setAttribute('position',            '0 1.6 0');
-  cameraRig.appendChild(cam);
-  sceneEl.appendChild(cameraRig);
-
-  // Корневая группа галереи — изначально скрыта
-  const galleryAnchor = document.createElement('a-entity');
-  galleryAnchor.setAttribute('id',       'galleryAnchor');
-  galleryAnchor.setAttribute('visible',  'false');
-  sceneEl.appendChild(galleryAnchor);
-
-  // Освещение
-  const ambLight = document.createElement('a-light');
-  ambLight.setAttribute('type',      'ambient');
-  ambLight.setAttribute('color',     '#ffffff');
-  ambLight.setAttribute('intensity', '2.5');
-  sceneEl.appendChild(ambLight);
-
-  const dirLight = document.createElement('a-light');
-  dirLight.setAttribute('type',      'directional');
-  dirLight.setAttribute('color',     '#ffffff');
-  dirLight.setAttribute('intensity', '2.0');
-  dirLight.setAttribute('position',  '3 6 3');
-  dirLight.setAttribute('cast-shadow', 'true');
-  sceneEl.appendChild(dirLight);
-
-  document.body.insertBefore(sceneEl, document.getElementById('cursor'));
-
-  // Ждём загрузки A-Frame
-  sceneEl.addEventListener('loaded', () => {
-    buildARjsGallery(galleryAnchor, sceneEl);
+  // Несколько цветных источников для отражений
+  [
+    [0xfff5cc, 3,  5,  5],
+    [0xffd080, 2, -5,  3],
+    [0x88aaff, 1,  0, -5],
+  ].forEach(([c, i, x, y]) => {
+    const l = new THREE.PointLight(c, i, 20);
+    l.position.set(x, y, 3);
+    envScene.add(l);
   });
 
-  // Кнопка размещения
-  document.getElementById('placeBtn').addEventListener('click', () => {
-    placeARjsGallery(galleryAnchor, sceneEl);
-  });
-
-  document.getElementById('exitBtn').addEventListener('click', () => {
-    sceneEl.remove();
-    resetUI();
-  });
+  const rt  = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04);
+  pmrem.dispose();
+  return rt.texture;
 }
 
-// ─── Строим галерею в A-Frame ─────────────────────────
-function buildARjsGallery(anchor, sceneEl) {
-  const txLoader = new THREE.TextureLoader();
+// ─── Буквы из Path (упрощённый набор) ────────────────────
+// Так как THREE.FontLoader требует файл шрифта,
+// строим 3D-текст через Shape + ExtrudeGeometry вручную
+// используем встроенную технику с canvas + путями
 
-  PHOTOS.forEach((photo, i) => {
+function makeGold3DText(text, size, depth, yOffset) {
+  const group = new THREE.Group();
+
+  // Рисуем текст на canvas → получаем bitmap
+  const scale = 200;
+  const cv    = document.createElement('canvas');
+  cv.width    = Math.ceil(text.length * size * scale * 0.65);
+  cv.height   = Math.ceil(size * scale * 1.3);
+  const ctx   = cv.getContext('2d');
+
+  const pxSize = size * scale;
+  ctx.font     = `900 ${pxSize}px Arial Black, Arial`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign    = 'center';
+  ctx.fillText(text, cv.width/2, cv.height/2);
+
+  // Вытаскиваем контуры пикселей и строим Shape
+  // Вместо трассировки пикселей — используем THREE.ShapePath
+  // Более надёжный способ: текстурированный экструзионный Box
+  // с картой нормалей из canvas
+
+  // ── Реальный 3D: BoxGeometry с маской текста ──────────
+  // Создаём plane с текстурой + имитируем объём через несколько слоёв
+  const layers = 6;
+  for (let i = 0; i < layers; i++) {
+    const zOff  = (i / layers) * depth - depth/2;
+    const alpha = i === 0 || i === layers-1 ? 1.0 : 0.85;
+    const shade = 1.0 - i * 0.06;
+
+    const layerCV  = document.createElement('canvas');
+    layerCV.width  = cv.width;
+    layerCV.height = cv.height;
+    const lCtx     = layerCV.getContext('2d');
+
+    // Градиент металла
+    const grd = lCtx.createLinearGradient(0, 0, cv.width, cv.height);
+    grd.addColorStop(0.0,  `rgba(255,245,150,${alpha})`);
+    grd.addColorStop(0.2,  `rgba(255,215,  0,${alpha})`);
+    grd.addColorStop(0.4,  `rgba(200,160, 30,${alpha})`);
+    grd.addColorStop(0.6,  `rgba(255,220, 50,${alpha})`);
+    grd.addColorStop(0.8,  `rgba(180,130, 10,${alpha})`);
+    grd.addColorStop(1.0,  `rgba(255,200, 20,${alpha})`);
+
+    // Вырезаем по форме текста (clip)
+    lCtx.font         = `900 ${pxSize}px Arial Black, Arial`;
+    lCtx.textBaseline = 'middle';
+    lCtx.textAlign    = 'center';
+    lCtx.fillStyle    = grd;
+    lCtx.fillText(text, cv.width/2, cv.height/2);
+
+    // Блик
+    if (i === layers - 1) {
+      const shine = lCtx.createLinearGradient(0, 0, cv.width*0.6, cv.height*0.6);
+      shine.addColorStop(0,   'rgba(255,255,255,0.55)');
+      shine.addColorStop(0.5, 'rgba(255,255,255,0.0)');
+      lCtx.globalCompositeOperation = 'source-atop';
+      lCtx.fillStyle = shine;
+      lCtx.fillText(text, cv.width/2, cv.height/2);
+      lCtx.globalCompositeOperation = 'source-over';
+    }
+
+    const tex   = new THREE.CanvasTexture(layerCV);
+    tex.encoding = THREE.sRGBEncoding;
+
+    const w = cv.width  / scale;
+    const h = cv.height / scale;
+
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshStandardMaterial({
+        map:          tex,
+        transparent:  true,
+        alphaTest:    0.05,
+        roughness:    0.15 + i * 0.04,
+        metalness:    0.95,
+        emissive:     new THREE.Color(0x7A5500),
+        emissiveMap:  tex,
+        emissiveIntensity: 0.25,
+        side: THREE.DoubleSide,
+        depthWrite: i === layers - 1,
+      })
+    );
+    mesh.position.z  = zOff;
+    mesh.castShadow  = true;
+    group.add(mesh);
+  }
+
+  group.position.y = yOffset;
+  return group;
+}
+
+// ─── Пьедестал ───────────────────────────────────────────
+function makePedestal() {
+  const group = new THREE.Group();
+  const mat   = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a, roughness: 0.45, metalness: 0.5
+  });
+  const topMat = new THREE.MeshStandardMaterial({
+    color:     new THREE.Color(0xc8a84b),
+    emissive:  new THREE.Color(0x3a2800),
+    emissiveIntensity: 0.1,
+    roughness: 0.2, metalness: 0.95
+  });
+
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.07, 6), mat);
+  base.castShadow = base.receiveShadow = true;
+  group.add(base);
+
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.45, 6), mat);
+  col.position.y = 0.26;
+  col.castShadow = col.receiveShadow = true;
+  group.add(col);
+
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.13, 0.05, 6), topMat);
+  top.position.y = 0.51;
+  top.castShadow = top.receiveShadow = true;
+  group.add(top);
+
+  return group;
+}
+
+// ════════════════════════════════════════════════════════
+//  СБОРКА СЦЕНЫ
+// ════════════════════════════════════════════════════════
+const galleryRoot = new THREE.Group();
+galleryRoot.visible = false;
+scene.add(galleryRoot);
+galleryRoot.add(floorMesh);
+
+// Асинхронная расстановка фото
+async function buildGallery() {
+  const promises = [];
+
+  for (let i = 0; i < 10; i++) {
     const side = i % 2 === 0 ? -1 : 1;
     const idx  = Math.floor(i / 2);
 
-    const standGroup = document.createElement('a-entity');
-    standGroup.setAttribute('position', `${side * SIDE_DIST} ${STAND_H} ${-(idx * SPACING)}`);
-    standGroup.setAttribute('rotation', `0 ${side > 0 ? -90 : 90} 0`);
+    promises.push(
+      makePhotoStand(i, side).then(stand => {
+        stand.position.set(
+          side * SIDE_DIST,
+          STAND_H,
+          -(idx * SPACING)
+        );
+        galleryRoot.add(stand);
+      })
+    );
+  }
 
-    // Фото-плоскость
-    const photoPlane = document.createElement('a-plane');
-    photoPlane.setAttribute('width',    PHOTO_W.toString());
-    photoPlane.setAttribute('height',   (PHOTO_W * 1.33).toString()); // будет обновлено
-    photoPlane.setAttribute('src',      photo.url);
-    photoPlane.setAttribute('material', `src: ${photo.url}; shader: flat; side: double`);
-
-    // Когда текстура загрузится — подгоняем размер под соотношение
-    photoPlane.addEventListener('materialtextureloaded', (e) => {
-      const img = e.detail?.texture?.image;
-      if (img && img.width && img.height) {
-        const ratio = img.width / img.height;
-        const ph    = PHOTO_W / ratio;
-        photoPlane.setAttribute('height', ph.toString());
-        buildFrame(standGroup, PHOTO_W, ph);
-        buildLabel(standGroup, photo.label, ph);
-      } else {
-        buildFrame(standGroup, PHOTO_W, PHOTO_W * 1.33);
-        buildLabel(standGroup, photo.label, PHOTO_W * 1.33);
-      }
-    });
-
-    standGroup.appendChild(photoPlane);
-    anchor.appendChild(standGroup);
-  });
+  await Promise.all(promises);
 
   // Пьедестал
-  const endZ      = -(4 * SPACING + 1.3);
-  buildPedestal(anchor, endZ);
-  buildGoldText(anchor, endZ);
+  const endZ    = -(4 * SPACING + 1.3);
+  const pedestal = makePedestal();
+  pedestal.position.set(0, 0, endZ);
+  galleryRoot.add(pedestal);
+
+  // 3D надпись «30 ЛЕТ» — крупно
+  const text30  = makeGold3DText('30 ЛЕТ', 0.22, 0.06, 0);
+  // 3D надпись «НА СЛУЖБЕ» — поменьше
+  const textSvc = makeGold3DText('НА СЛУЖБЕ', 0.10, 0.035, -0.17);
+
+  // Группа надписи — ниже, ближе к пьедесталу
+  const signGroup = new THREE.Group();
+  signGroup.add(text30);
+  signGroup.add(textSvc);
+  signGroup.position.set(0, 0.72, endZ); // ↓ ниже (было 1.35)
+  galleryRoot.add(signGroup);
+
+  // Прожектор на пьедестал
+  const pedesSpot = new THREE.SpotLight(0xffd080, 5.0, 4, Math.PI/7, 0.3, 1.2);
+  pedesSpot.castShadow = true;
+  pedesSpot.shadow.mapSize.set(512, 512);
+  pedesSpot.position.set(0, 2.5, endZ + 0.7);
+  const pt = new THREE.Object3D();
+  pt.position.set(0, 0.7, endZ);
+  scene.add(pt);
+  pedesSpot.target = pt;
+  galleryRoot.add(pedesSpot);
+
+  // Точечный свет — золотое сияние вокруг надписи
+  const glow = new THREE.PointLight(0xffd060, 2.5, 1.5);
+  glow.position.set(0, 0.85, endZ);
+  galleryRoot.add(glow);
+
+  // Env map для золота
+  try {
+    const envMap = buildEnvMap();
+    scene.environment = envMap;
+  } catch(e) {}
+
+  return signGroup;
 }
 
-// ─── Рамка ───────────────────────────────────────────
-function buildFrame(parent, w, h) {
-  const t   = FRAME_T;
-  const mat = 'color: #c8a84b; metalness: 0.95; roughness: 0.2; emissive: #3a2800; emissiveIntensity: 0.2';
+let signGroup = null;
+buildGallery().then(sg => { signGroup = sg; });
 
-  [
-    { w: w + t*2, h: t,   x: 0,        y:  h/2 + t/2 },
-    { w: w + t*2, h: t,   x: 0,        y: -(h/2 + t/2) },
-    { w: t,       h: h,   x: -(w/2 + t/2), y: 0 },
-    { w: t,       h: h,   x:  w/2 + t/2,   y: 0 },
-  ].forEach(p => {
-    const bar = document.createElement('a-box');
-    bar.setAttribute('width',    p.w.toString());
-    bar.setAttribute('height',   p.h.toString());
-    bar.setAttribute('depth',    (t * 0.8).toString());
-    bar.setAttribute('position', `${p.x} ${p.y} 0.002`);
-    bar.setAttribute('material', mat);
-    parent.appendChild(bar);
-  });
-}
-
-// ─── Подпись ─────────────────────────────────────────
-function buildLabel(parent, text, photoH) {
-  // Рисуем на canvas
-  const cv  = document.createElement('canvas');
-  cv.width  = 512; cv.height = 72;
-  const ctx = cv.getContext('2d');
-  ctx.clearRect(0, 0, 512, 72);
-  ctx.font         = 'bold 32px Arial';
-  ctx.fillStyle    = '#f5d078';
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.shadowColor  = 'rgba(0,0,0,0.9)';
-  ctx.shadowBlur   = 8;
-  ctx.fillText(text, 256, 36);
-
-  const img = cv.toDataURL();
-  const lbl = document.createElement('a-plane');
-  lbl.setAttribute('width',    '0.55');
-  lbl.setAttribute('height',   '0.07');
-  lbl.setAttribute('position', `0 ${-(photoH/2 + 0.07)} 0.01`);
-  lbl.setAttribute('material', `src: ${img}; transparent: true; shader: flat; side: double`);
-  parent.appendChild(lbl);
-}
-
-// ─── Пьедестал ───────────────────────────────────────
-function buildPedestal(anchor, endZ) {
-  const darkMat = 'color: #252525; roughness: 0.5; metalness: 0.5';
-  const goldMat = 'color: #c8a84b; roughness: 0.2; metalness: 0.95; emissive: #3a2800';
-
-  // База
-  const base = document.createElement('a-cylinder');
-  base.setAttribute('radius-bottom', '0.34');
-  base.setAttribute('radius-top',    '0.28');
-  base.setAttribute('height',        '0.07');
-  base.setAttribute('segments-radial','6');
-  base.setAttribute('position',       `0 0.035 ${endZ}`);
-  base.setAttribute('material',       darkMat);
-  anchor.appendChild(base);
-
-  // Колонна
-  const col = document.createElement('a-cylinder');
-  col.setAttribute('radius-bottom',  '0.18');
-  col.setAttribute('radius-top',     '0.13');
-  col.setAttribute('height',         '0.45');
-  col.setAttribute('segments-radial','6');
-  col.setAttribute('position',        `0 0.295 ${endZ}`);
-  col.setAttribute('material',        darkMat);
-  anchor.appendChild(col);
-
-  // Топ
-  const top = document.createElement('a-cylinder');
-  top.setAttribute('radius-bottom',  '0.13');
-  top.setAttribute('radius-top',     '0.24');
-  top.setAttribute('height',         '0.05');
-  top.setAttribute('segments-radial','6');
-  top.setAttribute('position',        `0 0.545 ${endZ}`);
-  top.setAttribute('material',        goldMat);
-  anchor.appendChild(top);
-}
-
-// ─── Золотой 3D текст ─────────────────────────────────
-function buildGoldText(anchor, endZ) {
-  ['30 ЛЕТ', 'НА СЛУЖБЕ'].forEach((text, i) => {
-    const size  = i === 0 ? 0.22 : 0.11;
-    const yPos  = i === 0 ? 0.82 : 0.63;
-    const depth = i === 0 ? 0.06 : 0.03;
-    const layers = 7;
-
-    const scale  = 200;
-    const pxSize = size * scale;
-
-    for (let l = 0; l < layers; l++) {
-      const zOff = (l / (layers-1)) * depth - depth/2;
-
-      const cv  = document.createElement('canvas');
-      cv.width  = Math.ceil(text.length * pxSize * 0.65);
-      cv.height = Math.ceil(pxSize * 1.4);
-
-      const ctx = cv.getContext('2d');
-      ctx.clearRect(0, 0, cv.width, cv.height);
-
-      const grd = ctx.createLinearGradient(0, 0, cv.width, cv.height);
-      grd.addColorStop(0.00, '#FFF5A0');
-      grd.addColorStop(0.15, '#FFD700');
-      grd.addColorStop(0.35, '#C8860A');
-      grd.addColorStop(0.50, '#FFD700');
-      grd.addColorStop(0.65, '#AA6C00');
-      grd.addColorStop(0.80, '#FFD700');
-      grd.addColorStop(1.00, '#FFF0A0');
-
-      ctx.font         = `900 ${pxSize}px Arial Black, Arial`;
-      ctx.textBaseline = 'middle';
-      ctx.textAlign    = 'center';
-      ctx.fillStyle    = grd;
-      ctx.fillText(text, cv.width/2, cv.height/2);
-
-      if (l === layers - 1) {
-        const shine = ctx.createLinearGradient(0, 0, cv.width*0.5, cv.height*0.5);
-        shine.addColorStop(0,   'rgba(255,255,255,0.6)');
-        shine.addColorStop(0.4, 'rgba(255,255,255,0.0)');
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fillStyle = shine;
-        ctx.fillText(text, cv.width/2, cv.height/2);
-        ctx.globalCompositeOperation = 'source-over';
-      }
-
-      const imgData = cv.toDataURL();
-      const w = cv.width  / scale;
-      const h = cv.height / scale;
-
-      const plane = document.createElement('a-plane');
-      plane.setAttribute('width',    w.toString());
-      plane.setAttribute('height',   h.toString());
-      plane.setAttribute('position', `0 ${yPos} ${endZ + zOff}`);
-      plane.setAttribute('material', `
-        src: ${imgData};
-        transparent: true;
-        alphaTest: 0.05;
-        shader: flat;
-        side: double;
-        roughness: 0.12;
-        metalness: 1.0;
-      `);
-      anchor.appendChild(plane);
-    }
-  });
-
-  // Золотое свечение
-  const glow = document.createElement('a-light');
-  glow.setAttribute('type',      'point');
-  glow.setAttribute('color',     '#ffd060');
-  glow.setAttribute('intensity', '2.5');
-  glow.setAttribute('distance',  '2.0');
-  glow.setAttribute('position',  `0 0.9 ${endZ}`);
-  anchor.appendChild(glow);
-}
-
-// ─── Размещение галереи ───────────────────────────────
-function placeARjsGallery(anchor, sceneEl) {
-  const cam = document.getElementById('arCamera');
-  if (!cam) return;
-
-  const camObj  = cam.object3D;
-  const forward = new THREE.Vector3(0, 0, -1);
-  forward.applyQuaternion(camObj.quaternion);
-  forward.y = 0;
-  forward.normalize();
-
-  const camPos = camObj.position;
-  const placeX = camPos.x + forward.x * 2.0;
-  const placeZ = camPos.z + forward.z * 2.0;
-
-  // Угол поворота — лицом к камере
-  const angle = Math.atan2(forward.x, forward.z) * (180 / Math.PI);
-
-  anchor.setAttribute('position', `${placeX} 0 ${placeZ}`);
-  anchor.setAttribute('rotation', `0 ${angle} 0`);
-  anchor.setAttribute('visible',  'true');
-
-  document.getElementById('cursor').style.display  = 'none';
-  document.getElementById('placeBtn').style.display = 'none';
-  document.getElementById('hint').textContent       = '🚶 Пройдитесь вдоль галереи!';
-  setTimeout(() => { document.getElementById('hint').style.display = 'none'; }, 5000);
-
-  // Анимация появления
-  anchor.setAttribute('animation', 'property: scale; from: 0.01 0.01 0.01; to: 1 1 1; dur: 600; easing: easeOutBack');
-}
+// ─── Маркер ──────────────────────────────────────────────
+const reticle = new THREE.Mesh(
+  new THREE.RingGeometry(0.08, 0.12, 32).rotateX(-Math.PI/2),
+  new THREE.MeshBasicMaterial({ color: 0xf5d078, side: THREE.DoubleSide })
+);
+reticle.visible = false;
+scene.add(reticle);
 
 // ════════════════════════════════════════════════════════
-//  РЕЖИМ B: Three.js + WebXR (Chrome Android)
+//  DOM / XR
 // ════════════════════════════════════════════════════════
-function startThreeJSAR() {
-  // Создаём отдельный renderer для WebXR
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled        = true;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
-  renderer.outputEncoding    = THREE.sRGBEncoding;
-  renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.6;
-  renderer.domElement.style.cssText = 'position:fixed;inset:0;z-index:1;';
-  document.body.appendChild(renderer.domElement);
+const overlay  = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const errorMsg = document.getElementById('errorMsg');
+const hint     = document.getElementById('hint');
+const exitBtn  = document.getElementById('exitBtn');
 
-  const scene  = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 30);
+let xrSession  = null;
+let hitTestSrc = null;
+let placed     = false;
+const clock    = new THREE.Clock();
 
-  // Освещение
-  scene.add(new THREE.AmbientLight(0xffffff, 3.0));
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 2.0));
-  const sun = new THREE.DirectionalLight(0xffffff, 2.5);
-  sun.position.set(3, 6, 3);
-  sun.castShadow = true;
-  scene.add(sun);
+async function startAR() {
+  startBtn.disabled = true;
+  if (!navigator.xr) {
+    showError('WebXR не поддерживается. Нужен Chrome на Android.');
+    startBtn.disabled = false; return;
+  }
+  const ok = await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+  if (!ok) {
+    showError('AR не поддерживается на этом устройстве.');
+    startBtn.disabled = false; return;
+  }
 
-  // Пол
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(20, 20).rotateX(-Math.PI/2),
-    new THREE.ShadowMaterial({ opacity: 0.3 })
-  );
-  floor.receiveShadow = true;
-  floor.visible = false;
-  scene.add(floor);
-
-  // Маркер
-  const reticle = new THREE.Mesh(
-    new THREE.RingGeometry(0.08, 0.13, 32).rotateX(-Math.PI/2),
-    new THREE.MeshBasicMaterial({ color: 0xf5d078, side: THREE.DoubleSide })
-  );
-  reticle.visible = false;
-  scene.add(reticle);
-
-  // Галерея
-  const galleryRoot = new THREE.Group();
-  galleryRoot.visible = false;
-  scene.add(galleryRoot);
-
-  const txLoader  = new THREE.TextureLoader();
-  let   signGroup = null;
-  let   placed    = false;
-  const clock     = new THREE.Clock();
-
-  // --- Те же функции что и раньше, но локальные ---
-  function loadTex(url) {
-    return new Promise(resolve => {
-      txLoader.load(url, tex => {
-        tex.encoding = THREE.sRGBEncoding;
-        resolve({ tex, ratio: tex.image.width / tex.image.height });
-      }, undefined, () => {
-        const cv = document.createElement('canvas');
-        cv.width = cv.height = 512;
-        const ctx = cv.getContext('2d');
-        ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0,0,512,512);
-        ctx.fillStyle = '#c8a84b'; ctx.font = 'bold 52px Arial';
-        ctx.textAlign = 'center'; ctx.fillText('ФОТО', 256, 256);
-        const t = new THREE.CanvasTexture(cv);
-        t.encoding = THREE.sRGBEncoding;
-        resolve({ tex: t, ratio: 1 });
-      });
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: { root: document.body }
     });
-  }
-
-  function makeFrameXR(w, h, t) {
-    const g   = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0xc8a84b, roughness: 0.2, metalness: 0.95 });
-    [
-      { sx: w+t*2, sy: t, px: 0,       py:  h/2+t/2 },
-      { sx: w+t*2, sy: t, px: 0,       py: -(h/2+t/2) },
-      { sx: t,     sy: h, px:-(w/2+t/2), py: 0 },
-      { sx: t,     sy: h, px: w/2+t/2,   py: 0 },
-    ].forEach(p => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(p.sx, p.sy, t*0.8), mat);
-      m.position.set(p.px, p.py, 0.001);
-      g.add(m);
-    });
-    return g;
-  }
-
-  async function buildXRGallery() {
-    const promises = [];
-    for (let i = 0; i < 10; i++) {
-      const side = i % 2 === 0 ? -1 : 1;
-      const idx  = Math.floor(i / 2);
-      promises.push(loadTex(PHOTOS[i].url).then(({ tex, ratio }) => {
-        const pw = PHOTO_W, ph = pw / ratio;
-        const g  = new THREE.Group();
-
-        g.add(Object.assign(new THREE.Mesh(
-          new THREE.BoxGeometry(pw+FRAME_T*3, ph+FRAME_T*3, 0.01),
-          new THREE.MeshStandardMaterial({ color: 0x0a0a0a })
-        ), { position: new THREE.Vector3(0, 0, -0.006) }));
-
-        const photo = new THREE.Mesh(
-          new THREE.PlaneGeometry(pw, ph),
-          new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 })
-        );
-        g.add(photo);
-        g.add(makeFrameXR(pw, ph, FRAME_T));
-        // Подпись
-        const cv  = document.createElement('canvas');
-        cv.width  = 512; cv.height = 72;
-        const ctx = cv.getContext('2d');
-        ctx.clearRect(0, 0, 512, 72);
-        ctx.font = 'bold 32px Arial';
-        ctx.fillStyle = '#f5d078';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0,0,0,0.9)';
-        ctx.shadowBlur  = 8;
-        ctx.fillText(PHOTOS[i].label, 256, 36);
-        const lblTex = new THREE.CanvasTexture(cv);
-        lblTex.encoding = THREE.sRGBEncoding;
-        const lblH = 0.065;
-        const lbl  = new THREE.Mesh(
-          new THREE.PlaneGeometry(lblH * (512/72), lblH),
-          new THREE.MeshBasicMaterial({ map: lblTex, transparent: true, depthWrite: false })
-        );
-        lbl.position.set(0, -ph/2 - 0.065, 0.01);
-        g.add(lbl);
-
-        g.rotation.y = side > 0 ? -Math.PI/2 : Math.PI/2;
-        g.position.set(side * SIDE_DIST, STAND_H, -(idx * SPACING));
-        galleryRoot.add(g);
-      }));
-    }
-    await Promise.all(promises);
-
-    // Пьедестал
-    const endZ    = -(4 * SPACING + 1.3);
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x252525, roughness: 0.5, metalness: 0.5 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xc8a84b, roughness: 0.2, metalness: 0.95 });
-
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.07, 6), darkMat);
-    base.position.set(0, 0.035, endZ);
-    galleryRoot.add(base);
-
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.45, 6), darkMat);
-    col.position.set(0, 0.295, endZ);
-    galleryRoot.add(col);
-
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.13, 0.05, 6), goldMat);
-    top.position.set(0, 0.545, endZ);
-    galleryRoot.add(top);
-
-    // Золотой текст
-    signGroup = makeGoldTextXR('30 ЛЕТ',    0.22, 0.06);
-    const sub = makeGoldTextXR('НА СЛУЖБЕ', 0.11, 0.03);
-    sub.position.y = -0.19;
-
-    const textGroup = new THREE.Group();
-    textGroup.add(signGroup);
-    textGroup.add(sub);
-    textGroup.position.set(0, 0.72, endZ);
-    galleryRoot.add(textGroup);
-    signGroup = textGroup;
-
-    // Свечение пьедестала
-    const glow = new THREE.PointLight(0xffd060, 3.0, 1.8);
-    glow.position.set(0, 0.9, endZ);
-    galleryRoot.add(glow);
-  }
-
-  function makeGoldTextXR(text, size, depth) {
-    const group  = new THREE.Group();
-    const scale  = 200;
-    const pxSize = size * scale;
-    const layers = 7;
-
-    for (let l = 0; l < layers; l++) {
-      const zOff = (l / (layers-1)) * depth - depth/2;
-      const cv   = document.createElement('canvas');
-      cv.width   = Math.ceil(text.length * pxSize * 0.65);
-      cv.height  = Math.ceil(pxSize * 1.4);
-      const ctx  = cv.getContext('2d');
-      ctx.clearRect(0, 0, cv.width, cv.height);
-
-      const grd = ctx.createLinearGradient(0, 0, cv.width, cv.height);
-      grd.addColorStop(0.00, '#FFF5A0');
-      grd.addColorStop(0.15, '#FFD700');
-      grd.addColorStop(0.35, '#C8860A');
-      grd.addColorStop(0.50, '#FFD700');
-      grd.addColorStop(0.65, '#AA6C00');
-      grd.addColorStop(0.80, '#FFD700');
-      grd.addColorStop(1.00, '#FFF0A0');
-
-      ctx.font         = `900 ${pxSize}px Arial Black, Arial`;
-      ctx.textBaseline = 'middle';
-      ctx.textAlign    = 'center';
-      ctx.fillStyle    = grd;
-      ctx.fillText(text, cv.width/2, cv.height/2);
-
-      if (l === layers - 1) {
-        const shine = ctx.createLinearGradient(0, 0, cv.width*0.5, cv.height*0.5);
-        shine.addColorStop(0,   'rgba(255,255,255,0.6)');
-        shine.addColorStop(0.4, 'rgba(255,255,255,0.0)');
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fillStyle = shine;
-        ctx.fillText(text, cv.width/2, cv.height/2);
-        ctx.globalCompositeOperation = 'source-over';
-      }
-
-      const tex  = new THREE.CanvasTexture(cv);
-      tex.encoding = THREE.sRGBEncoding;
-      const w    = cv.width  / scale;
-      const h    = cv.height / scale;
-
-      const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(w, h),
-        new THREE.MeshStandardMaterial({
-          map:           tex,
-          transparent:   true,
-          alphaTest:     0.05,
-          roughness:     0.12,
-          metalness:     1.0,
-          emissive:      new THREE.Color(0x7A5500),
-          emissiveMap:   tex,
-          emissiveIntensity: 0.3,
-          side:          THREE.DoubleSide,
-          depthWrite:    l === layers - 1,
-        })
-      );
-      mesh.position.z = zOff;
-      group.add(mesh);
-    }
-    return group;
-  }
-
-  // Строим галерею
-  buildXRGallery();
-
-  // XR Session
-  navigator.xr.requestSession('immersive-ar', {
-    requiredFeatures: ['hit-test'],
-    optionalFeatures: ['dom-overlay'],
-    domOverlay: { root: document.body }
-  }).then(async session => {
 
     renderer.xr.setReferenceSpaceType('local');
-    await renderer.xr.setSession(session);
+    await renderer.xr.setSession(xrSession);
 
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('ui').style.display            = 'flex';
-    document.getElementById('exitBtn').style.display       = 'block';
-    document.getElementById('cursor').style.display        = 'block';
-    document.getElementById('modeBadge').style.display     = 'block';
-    document.getElementById('modeBadge').textContent       = '🟢 WebXR AR';
-    document.getElementById('hint').textContent            = '📍 Наведите на пол и нажмите кнопку';
+    overlay.style.display = 'none';
+    hint.style.display    = 'block';
+    hint.textContent      = '📍 Наведите на пол и нажмите — разместить галерею';
+    exitBtn.style.display = 'block';
 
-    const viewerSpace = await session.requestReferenceSpace('viewer');
-    const hitTestSrc  = await session.requestHitTestSource({ space: viewerSpace });
+    const viewerSpace = await xrSession.requestReferenceSpace('viewer');
+    hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
 
-    // Размещение по кнопке
-    document.getElementById('placeBtn').addEventListener('click', () => {
-      if (!reticle.visible) return;
-      placed = true;
-      galleryRoot.position.copy(reticle.position);
-      floor.position.copy(reticle.position);
-      floor.visible        = true;
-      galleryRoot.visible  = true;
-      reticle.visible      = false;
-      document.getElementById('cursor').style.display   = 'none';
-      document.getElementById('placeBtn').style.display = 'none';
-      document.getElementById('hint').textContent       = '🚶 Пройдитесь вдоль галереи!';
-      setTimeout(() => { document.getElementById('hint').style.display = 'none'; }, 4000);
-    });
+    renderer.domElement.addEventListener('click', onTap);
+    xrSession.addEventListener('end', onEnd);
+    renderer.setAnimationLoop(onFrame);
 
-    session.addEventListener('end', () => {
-      renderer.setAnimationLoop(null);
-      renderer.domElement.remove();
-      resetUI();
-    });
-
-    document.getElementById('exitBtn').addEventListener('click', () => session.end());
-
-    // Анимационный цикл
-    renderer.setAnimationLoop((time, frame) => {
-      if (!frame) return;
-      const refSpace = renderer.xr.getReferenceSpace();
-
-      // Hit-test
-      if (hitTestSrc && !placed) {
-        const hits = frame.getHitTestResults(hitTestSrc);
-        if (hits.length) {
-          const pose = hits[0].getPose(refSpace);
-          reticle.visible = true;
-          reticle.matrix.fromArray(pose.transform.matrix);
-          reticle.matrix.decompose(reticle.position, reticle.quaternion, reticle.scale);
-        } else {
-          reticle.visible = false;
-        }
-      }
-
-      // Анимация надписи
-      if (signGroup) {
-        const t = clock.getElapsedTime();
-        signGroup.position.y = 0.72 + Math.sin(t * 1.1) * 0.045;
-        signGroup.rotation.y = Math.sin(t * 0.35) * 0.12;
-        galleryRoot.children.forEach(c => {
-          if (c.isPointLight) {
-            c.intensity = 2.5 + Math.sin(t * 2.2) * 0.9;
-          }
-        });
-      }
-
-      renderer.render(scene, camera);
-    });
-
-  }).catch(err => {
-    console.error('WebXR ошибка:', err);
-    // Фолбэк на AR.js если WebXR не запустился
-    renderer.domElement.remove();
-    startARjs();
-  });
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+  } catch(e) {
+    showError('Ошибка: ' + e.message);
+    startBtn.disabled = false;
+  }
 }
 
-// ════════════════════════════════════════════════════════
-//  СБРОС UI
-// ════════════════════════════════════════════════════════
-function resetUI() {
-  document.getElementById('loadingScreen').style.display = 'flex';
-  document.getElementById('ui').style.display            = 'none';
-  document.getElementById('exitBtn').style.display       = 'none';
-  document.getElementById('cursor').style.display        = 'none';
-  document.getElementById('modeBadge').style.display     = 'none';
-  document.getElementById('hint').style.display          = 'block';
-  document.getElementById('placeBtn').style.display      = 'block';
-  document.getElementById('startBtn').disabled           = false;
-  document.getElementById('startBtn').textContent        = '✨ Запустить AR';
+function onTap() {
+  if (!reticle.visible || placed) return;
+  placed = true;
+
+  galleryRoot.position.copy(reticle.position);
+  floorMesh.position.copy(reticle.position);
+  floorMesh.visible    = true;
+  galleryRoot.visible  = true;
+  reticle.visible      = false;
+
+  hint.textContent = '🚶 Пройдитесь вдоль галереи!';
+  setTimeout(() => { hint.style.display = 'none'; }, 5000);
+}
+
+function onFrame(time, frame) {
+  if (!frame) return;
+  const refSpace = renderer.xr.getReferenceSpace();
+
+  if (hitTestSrc && !placed) {
+    const hits = frame.getHitTestResults(hitTestSrc);
+    if (hits.length) {
+      const pose = hits[0].getPose(refSpace);
+      reticle.visible = true;
+      reticle.matrix.fromArray(pose.transform.matrix);
+      reticle.matrix.decompose(reticle.position, reticle.quaternion, reticle.scale);
+    } else {
+      reticle.visible = false;
+    }
+  }
+
+  if (placed && signGroup) {
+    const t = clock.getElapsedTime();
+    // Левитация
+    signGroup.position.y = 0.72 + Math.sin(t * 1.1) * 0.04;
+    signGroup.rotation.y = Math.sin(t * 0.35) * 0.12;
+
+    // Пульсация золотого свечения
+    galleryRoot.children.forEach(c => {
+      if (c.isPointLight) {
+        c.intensity = 2.2 + Math.sin(t * 2.2) * 0.8;
+      }
+    });
+  }
+
+  renderer.render(scene, camera);
+}
+
+function onEnd() {
+  renderer.setAnimationLoop(null);
+  if (hitTestSrc) { hitTestSrc.cancel(); hitTestSrc = null; }
+  placed = false;
+  galleryRoot.visible = false;
+  reticle.visible     = false;
+  floorMesh.visible   = false;
+  renderer.domElement.removeEventListener('click', onTap);
+  overlay.style.display   = '';
+  hint.style.display      = 'none';
+  exitBtn.style.display   = 'none';
+  startBtn.disabled       = false;
+  clock.getDelta();
+}
+
+startBtn.addEventListener('click', startAR);
+exitBtn.addEventListener('click', () => xrSession?.end());
+
+function showError(m) {
+  errorMsg.textContent  = m;
+  errorMsg.style.display = 'block';
 }
 
 window.addEventListener('resize', () => {
-  const s = document.querySelector('a-scene');
-  if (!s) return;
-  const cam = s.querySelector('a-camera');
-  if (cam && cam.components && cam.components.camera) {
-    cam.components.camera.camera.aspect = window.innerWidth / window.innerHeight;
-    cam.components.camera.camera.updateProjectionMatrix();
-  }
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
 </body>
 </html>
-        
