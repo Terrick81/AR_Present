@@ -3,28 +3,100 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Бесплатный AR</title>
+  <title>AR с полом</title>
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin:0; overflow:hidden; background-color: black;">
+  
   <a-scene 
     embedded 
-    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;" 
-    renderer="logarithmicDepthBuffer: true;"
+    arjs="
+      sourceType: webcam;
+      debugUIEnabled: false;
+      detectionMode: mono;
+      matrixCodeType: 3x3;
+      camera: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/three.js/examples/camera_para.dat';
+      maxTolerance: 0.05;
+    "
+    renderer="antialias: true; alpha: false; logarithmicDepthBuffer: true;"
     vr-mode-ui="enabled: false"
   >
-    <!-- Невидимая плоскость для "пола", чтобы объект стоял -->
-    <a-plane position="0 0 -3" rotation="-90 0 0" width="4" height="4" visible="false" shadow="receive"></a-plane>
-    
-    <!-- САМ ОБЪЕКТ. Меняйте position (x, y, z). y = -0.5 ставит на пол -->
-    <a-box position="0 -0.5 -2" material="color: #ff5500; roughness: 0.4; metalness: 0.1;" shadow></a-box>
-    
-    <!-- Полупрозрачная сетка для понимания плоскости -->
-    <a-grid position="0 0 -2" rotation="-90 0 0" grid="side: double" material="color: #88ccff; opacity: 0.15;"></a-grid>
-    
-    <!-- Подсказка для пользователя -->
-    <a-text value="🔄 Медленно поводите телефон в стороны" position="0 1.5 -3" color="white" align="center" scale="0.8 0.8 0.8"></a-text>
+
+    <!-- КАМЕРА: отключаем всякое слежение за движением -->
+    <a-camera position="0 1.6 0" look-controls="enabled: false"></a-camera>
+
+    <!-- НЕВИДИМАЯ ПЛОСКОСТЬ для обнаружения пола -->
+    <a-plane 
+      id="ground" 
+      position="0 0 -3" 
+      rotation="-90 0 0" 
+      width="10" 
+      height="10" 
+      visible="false"
+      shadow="receive"
+      arjs-hit-test="enabled: true; target: #my-object;"
+    ></a-plane>
+
+    <!-- ГЛАВНЫЙ ОБЪЕКТ: привязываем к hit-test -->
+    <a-entity 
+      id="my-object"
+      position="0 -0.5 -2"
+      scale="0.8 0.8 0.8"
+      arjs-hit-test="enabled: true;"
+    >
+      <!-- ВАШ КУБ -->
+      <a-box 
+        material="color: #ff5500; roughness: 0.3; metalness: 0.2;"
+        shadow
+      ></a-box>
+      
+      <!-- ТЕНЬ для визуального контакта с полом -->
+      <a-circle 
+        position="0 -0.5 0" 
+        rotation="-90 0 0" 
+        radius="0.4" 
+        material="color: black; opacity: 0.3; transparent: true;"
+      ></a-circle>
+    </a-entity>
+
+    <!-- СЕТКА ПОЛА (для наглядности) -->
+    <a-grid 
+      position="0 0 -2" 
+      rotation="-90 0 0" 
+      grid="side: double" 
+      material="color: #88ccff; opacity: 0.15;"
+    ></a-grid>
+
+    <!-- ИНСТРУКЦИЯ -->
+    <a-text 
+      value="⬇️ Наведите на пол и постойте 2 секунды" 
+      position="0 1.8 -2.5" 
+      color="white" 
+      align="center" 
+      scale="0.6 0.6 0.6"
+    ></a-text>
+
   </a-scene>
+
+  <script>
+    // ПРИНУДИТЕЛЬНАЯ КАЛИБРОВКА: просим пользователя поводить телефоном
+    document.querySelector('a-scene').addEventListener('enter-vr', function() {
+      console.log('AR запущен. Наведите на пол.');
+    });
+
+    // Если объект всё ещё "едет" — принудительно обновляем позицию каждые 100мс
+    setInterval(() => {
+      const obj = document.getElementById('my-object');
+      if (obj) {
+        // Проверяем, стоит ли объект на месте
+        const pos = obj.getAttribute('position');
+        if (pos && pos.x === 0 && pos.y === -0.5 && pos.z === -2) {
+          // Если объект не привязался — даём команду на повторный поиск пола
+          obj.setAttribute('arjs-hit-test', 'enabled: true');
+        }
+      }
+    }, 2000);
+  </script>
 </body>
 </html>
