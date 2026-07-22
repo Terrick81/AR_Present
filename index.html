@@ -8,53 +8,157 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; font-family: Arial, sans-serif; }
 
+    /* Видео-фон для псевдо-AR */
+    #videoBackground {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      display: none;
+    }
+
+    canvas {
+      position: fixed; inset: 0;
+      z-index: 1;
+    }
+
     #overlay {
       position: fixed; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.9);
-      color: white; z-index: 10;
+      background: rgba(0,0,0,0.92);
+      color: white; z-index: 20;
+      padding: 20px;
     }
-    #overlay h1 { font-size: 1.8rem; margin-bottom: 8px; text-align: center; }
-    #overlay p  { font-size: 0.95rem; color: #aaa; margin-bottom: 24px; text-align: center; max-width: 320px; line-height: 1.5; }
+    #overlay h1 {
+      font-size: 1.7rem; margin-bottom: 8px;
+      text-align: center;
+      background: linear-gradient(135deg, #f5d078, #c8a84b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #overlay p {
+      font-size: 0.9rem; color: #aaa;
+      margin-bottom: 20px; text-align: center;
+      max-width: 320px; line-height: 1.6;
+    }
 
-    #startBtn {
-      padding: 14px 40px; font-size: 1.1rem;
-      background: linear-gradient(135deg, #c8a84b, #f5d078);
-      color: #1a1a1a; border: none; border-radius: 50px;
+    .btn-group { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 280px; }
+
+    .btn {
+      padding: 14px 20px; font-size: 1rem;
+      border: none; border-radius: 50px;
       cursor: pointer; font-weight: bold;
+      transition: opacity 0.2s;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-gold {
+      background: linear-gradient(135deg, #c8a84b, #f5d078);
+      color: #1a1a1a;
       box-shadow: 0 4px 20px rgba(200,168,75,0.4);
     }
-    #startBtn:disabled { background: #555; color: #999; box-shadow: none; cursor: default; }
+    .btn-outline {
+      background: transparent;
+      color: #f5d078;
+      border: 2px solid #c8a84b;
+    }
+    .btn:disabled { background: #444; color: #777; border-color: #444; box-shadow: none; cursor: default; }
+
+    #modeBadge {
+      position: fixed; top: 16px; left: 16px;
+      background: rgba(0,0,0,0.6);
+      color: #f5d078; font-size: 0.75rem;
+      padding: 5px 12px; border-radius: 20px;
+      border: 1px solid rgba(245,208,120,0.3);
+      z-index: 10; display: none;
+    }
 
     #hint {
-      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.65); color: white;
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7); color: white;
       padding: 10px 22px; border-radius: 20px;
-      font-size: 0.9rem; z-index: 5; display: none; text-align: center;
+      font-size: 0.85rem; z-index: 10; display: none;
+      text-align: center; white-space: nowrap;
       border: 1px solid rgba(255,255,255,0.15);
+      max-width: 90vw; white-space: normal;
     }
+
     #exitBtn {
-      position: fixed; top: 20px; right: 20px;
-      background: rgba(0,0,0,0.5); color: white;
+      position: fixed; top: 16px; right: 16px;
+      background: rgba(0,0,0,0.6); color: white;
       border: 1px solid rgba(255,255,255,0.3);
       padding: 8px 18px; border-radius: 20px;
-      cursor: pointer; font-size: 0.9rem; z-index: 5; display: none;
+      cursor: pointer; font-size: 0.9rem;
+      z-index: 10; display: none;
     }
-    #errorMsg { color: #f77; margin-top: 14px; font-size: 0.9rem; display: none; text-align: center; max-width: 300px; }
+
+    /* Псевдо-AR: джойстик управления */
+    #controls {
+      position: fixed; bottom: 80px; right: 16px;
+      display: none; flex-direction: column;
+      gap: 6px; z-index: 10;
+    }
+    #controls .crow { display: flex; gap: 6px; justify-content: center; }
+    .cbtn {
+      width: 48px; height: 48px;
+      background: rgba(0,0,0,0.6);
+      color: white; border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px; font-size: 1.2rem;
+      cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      user-select: none; -webkit-user-select: none;
+    }
+    .cbtn:active { background: rgba(200,168,75,0.4); }
+
+    #placeBtn {
+      position: fixed; bottom: 80px; left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #c8a84b, #f5d078);
+      color: #1a1a1a; border: none;
+      padding: 12px 32px; border-radius: 50px;
+      font-size: 1rem; font-weight: bold;
+      cursor: pointer; z-index: 10; display: none;
+      box-shadow: 0 4px 16px rgba(200,168,75,0.5);
+    }
+
+    #errorMsg {
+      color: #f88; margin-top: 14px;
+      font-size: 0.85rem; display: none;
+      text-align: center; max-width: 300px;
+    }
   </style>
 </head>
 <body>
 
+<video id="videoBackground" autoplay playsinline muted></video>
+
 <div id="overlay">
   <h1>🏛️ AR Галерея<br/>30 лет на службе</h1>
-  <p>Наведите камеру на пол. Нажмите, чтобы разместить галерею.</p>
-  <button id="startBtn">✨ Запустить AR</button>
+  <p>Выберите режим запуска. Если AR недоступен — используйте режим камеры (работает в любом браузере).</p>
+  <div class="btn-group">
+    <button class="btn btn-gold"    id="btnAR">    📱 Запустить AR (Chrome)</button>
+    <button class="btn btn-outline" id="btnCamera">📷 Режим камеры (любой браузер)</button>
+    <button class="btn btn-outline" id="btnDesktop">🖥️ Без камеры (превью)</button>
+  </div>
   <p id="errorMsg"></p>
 </div>
 
+<div id="modeBadge"></div>
 <div id="hint"></div>
 <button id="exitBtn">✕ Выйти</button>
+<button id="placeBtn">📍 Поставить галерею</button>
+
+<div id="controls">
+  <div class="crow"><div class="cbtn" id="cUp">↑</div></div>
+  <div class="crow">
+    <div class="cbtn" id="cLeft">←</div>
+    <div class="cbtn" id="cRotL">↺</div>
+    <div class="cbtn" id="cRotR">↻</div>
+    <div class="cbtn" id="cRight">→</div>
+  </div>
+  <div class="crow"><div class="cbtn" id="cDown">↓</div></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js"></script>
@@ -66,198 +170,183 @@ new WebXRPolyfill();
 //  НАСТРОЙКИ
 // ════════════════════════════════════════════════════════
 const PHOTOS = [
-  { url: 'photos/photo1.jpg',  label: '1994 год  •  Начало пути' },
+  { url: 'photos/photo1.jpg',  label: '1994 год  •  Начало пути'   },
   { url: 'photos/photo2.jpg',  label: '1997 год  •  Первые успехи' },
-  { url: 'photos/photo3.jpg',  label: '2000 год  •  Новый век' },
-  { url: 'photos/photo4.jpg',  label: '2005 год  •  ЛПП' },
-  { url: 'photos/photo5.jpg',  label: '2008 год  •  ЛПП' },
-  { url: 'photos/photo6.jpg',  label: '2011 год  •  ЛПП' },
-  { url: 'photos/photo7.jpg',  label: '2014 год  •  ЛПП' },
-  { url: 'photos/photo8.jpg',  label: '2018 год  •  ЛПП' },
-  { url: 'photos/photo9.jpg',  label: '2021 год  •  ЛПП' },
-  { url: 'photos/photo10.jpg', label: '2024 год  •  30 лет!' },
+  { url: 'photos/photo3.jpg',  label: '2000 год  •  Новый век'     },
+  { url: 'photos/photo4.jpg',  label: '2005 год  •  ЛПП'           },
+  { url: 'photos/photo5.jpg',  label: '2008 год  •  ЛПП'           },
+  { url: 'photos/photo6.jpg',  label: '2011 год  •  ЛПП'           },
+  { url: 'photos/photo7.jpg',  label: '2014 год  •  ЛПП'           },
+  { url: 'photos/photo8.jpg',  label: '2018 год  •  ЛПП'           },
+  { url: 'photos/photo9.jpg',  label: '2021 год  •  ЛПП'           },
+  { url: 'photos/photo10.jpg', label: '2024 год  •  30 лет!'       },
 ];
 
-const SPACING   = 0.95;  // расстояние между стендами
-const SIDE_DIST = 0.85;  // отступ от центра до ряда
-const PHOTO_W   = 0.52;  // базовая ширина фото (высота подстраивается под соотношение)
-const FRAME_T   = 0.022; // толщина рамки
-const STAND_H   = 1.4;   // ↑ поднято на 50 см (было 0.9)
+const SPACING   = 0.95;
+const SIDE_DIST = 0.85;
+const PHOTO_W   = 0.52;
+const FRAME_T   = 0.022;
+const STAND_H   = 1.4;
 // ════════════════════════════════════════════════════════
+
+// ─── Режим работы ────────────────────────────────────────
+// 'webxr' | 'camera' | 'desktop'
+let APP_MODE = null;
 
 // ─── Renderer ────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.xr.enabled = true;
+renderer.xr.enabled      = true;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
 renderer.outputEncoding    = THREE.sRGBEncoding;
 renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.4;
+renderer.toneMappingExposure = 1.6;
 document.body.appendChild(renderer.domElement);
 
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 30);
+camera.position.set(0, 1.6, 2); // дефолт для desktop/camera
 
-// ─── Освещение — ЯРКОЕ ───────────────────────────────────
-
-// 1. Очень сильный ambient — убирает темноту
-const ambient = new THREE.AmbientLight(0xffffff, 2.5);
+// ─── Освещение ───────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0xffffff, 3.0);
 scene.add(ambient);
 
-// 2. Hemisphere — небо/земля
-const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 1.5);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 2.0);
 scene.add(hemi);
 
-// 3. Основной направленный свет
-const sun = new THREE.DirectionalLight(0xffffff, 2.0);
-sun.position.set(2, 5, 2);
+const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+sun.position.set(3, 6, 3);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.near = 0.1;
-sun.shadow.camera.far  = 15;
-sun.shadow.camera.left = sun.shadow.camera.bottom = -5;
-sun.shadow.camera.right = sun.shadow.camera.top   =  5;
+sun.shadow.camera.far  = 20;
+[-6,6].forEach(v => {
+  sun.shadow.camera.left = sun.shadow.camera.bottom = -v;
+  sun.shadow.camera.right = sun.shadow.camera.top   =  v;
+});
+sun.shadow.camera.left = sun.shadow.camera.bottom = -6;
+sun.shadow.camera.right = sun.shadow.camera.top   =  6;
 scene.add(sun);
 
-// ─── Пол для теней ───────────────────────────────────────
+// Пол
 const floorMesh = new THREE.Mesh(
   new THREE.PlaneGeometry(20, 20).rotateX(-Math.PI/2),
-  new THREE.ShadowMaterial({ opacity: 0.25 })
+  new THREE.ShadowMaterial({ opacity: 0.3 })
 );
 floorMesh.receiveShadow = true;
 floorMesh.visible = false;
 scene.add(floorMesh);
 
-// ─── TextureLoader + определение соотношения сторон ──────
+// ─── Загрузка текстур ────────────────────────────────────
 const txLoader = new THREE.TextureLoader();
 
 function loadTextureWithRatio(url) {
   return new Promise(resolve => {
-    txLoader.load(
-      url,
+    txLoader.load(url,
       tex => {
         tex.encoding = THREE.sRGBEncoding;
-        const img    = tex.image;
-        const ratio  = img ? img.width / img.height : 1.0;
+        const ratio  = tex.image ? tex.image.width / tex.image.height : 1;
         resolve({ tex, ratio });
       },
       undefined,
       () => {
-        // placeholder если нет файла
-        const canvas = document.createElement('canvas');
-        canvas.width = 512; canvas.height = 512;
-        const ctx = canvas.getContext('2d');
+        const cv  = document.createElement('canvas');
+        cv.width  = 512; cv.height = 512;
+        const ctx = cv.getContext('2d');
         ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(0, 0, 512, 512);
         ctx.strokeStyle = '#c8a84b';
-        ctx.lineWidth = 8;
-        ctx.strokeRect(16, 16, 480, 480);
+        ctx.lineWidth = 10;
+        ctx.strokeRect(20, 20, 472, 472);
         ctx.fillStyle = '#c8a84b';
-        ctx.font = 'bold 48px Arial';
+        ctx.font = 'bold 52px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('ФОТО', 256, 240);
-        ctx.font = '32px Arial';
-        ctx.fillText(url.split('/').pop(), 256, 300);
-        const t = new THREE.CanvasTexture(canvas);
+        ctx.fillText('ФОТО', 256, 230);
+        ctx.font = '28px Arial';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(url.split('/').pop(), 256, 290);
+        const t = new THREE.CanvasTexture(cv);
         t.encoding = THREE.sRGBEncoding;
-        resolve({ tex: t, ratio: 1.0 });
+        resolve({ tex: t, ratio: 1 });
       }
     );
   });
 }
 
-// ─── Canvas-текст (подписи) ───────────────────────────────
+// ─── Canvas текст ────────────────────────────────────────
 function makeTextTexture(text, opts = {}) {
-  const {
-    font  = 'bold 36px Arial',
-    color = '#f5d078',
-    w = 512, h = 72
-  } = opts;
-  const c   = document.createElement('canvas');
-  c.width = w; c.height = h;
-  const ctx = c.getContext('2d');
+  const { font = 'bold 36px Arial', color = '#f5d078', w = 512, h = 72 } = opts;
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, w, h);
-  ctx.font         = font;
-  ctx.fillStyle    = color;
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  // Тонкая тень для читаемости
-  ctx.shadowColor  = 'rgba(0,0,0,0.9)';
-  ctx.shadowBlur   = 6;
+  ctx.font = font; ctx.fillStyle = color;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.shadowBlur = 8;
   ctx.fillText(text, w/2, h/2);
-  const t = new THREE.CanvasTexture(c);
+  const t = new THREE.CanvasTexture(cv);
   t.encoding = THREE.sRGBEncoding;
   return { texture: t, aspect: w/h };
 }
 
-// ─── Рамка ────────────────────────────────────────────────
+// ─── Рамка ───────────────────────────────────────────────
 function makeFrame(w, h, t) {
   const group = new THREE.Group();
-
-  // PBR золотой материал рамки
-  const mat = new THREE.MeshStandardMaterial({
-    color:     new THREE.Color(0xc8a84b),
-    emissive:  new THREE.Color(0x3a2800),
-    emissiveIntensity: 0.15,
-    roughness: 0.25,
-    metalness: 0.95,
+  const mat   = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0xc8a84b),
+    emissive: new THREE.Color(0x3a2800),
+    emissiveIntensity: 0.2,
+    roughness: 0.2, metalness: 0.95,
   });
-
   [
-    { sx: w+t*2, sy: t,   px: 0,      py:  h/2+t/2 },
-    { sx: w+t*2, sy: t,   px: 0,      py: -h/2-t/2 },
-    { sx: t,     sy: h,   px:-w/2-t/2,py: 0 },
-    { sx: t,     sy: h,   px: w/2+t/2,py: 0 },
+    { sx: w+t*2, sy: t, px: 0,       py:  h/2+t/2 },
+    { sx: w+t*2, sy: t, px: 0,       py: -h/2-t/2 },
+    { sx: t,     sy: h, px:-w/2-t/2, py: 0 },
+    { sx: t,     sy: h, px: w/2+t/2, py: 0 },
   ].forEach(p => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(p.sx, p.sy, t*0.8), mat);
     m.position.set(p.px, p.py, 0.001);
-    m.castShadow    = true;
-    m.receiveShadow = true;
+    m.castShadow = m.receiveShadow = true;
     group.add(m);
   });
-
   return group;
 }
 
-// ─── Стенд с фото (ждёт загрузки текстуры) ──────────────
+// ─── Стенд с фото ────────────────────────────────────────
 async function makePhotoStand(photoIdx, side) {
   const { tex, ratio } = await loadTextureWithRatio(PHOTOS[photoIdx].url);
-
   const pw = PHOTO_W;
-  const ph = pw / ratio;   // ← высота подстраивается под реальное соотношение
+  const ph = pw / ratio;
 
   const group = new THREE.Group();
 
-  // Подложка (небольшой сдвиг назад)
-  const backMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1, metalness: 0 });
-  const back    = new THREE.Mesh(new THREE.BoxGeometry(pw + FRAME_T*2.5, ph + FRAME_T*2.5, 0.008), backMat);
-  back.position.z = -0.005;
+  const back = new THREE.Mesh(
+    new THREE.BoxGeometry(pw + FRAME_T*3, ph + FRAME_T*3, 0.01),
+    new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1, metalness: 0 })
+  );
+  back.position.z = -0.006;
   back.receiveShadow = true;
   group.add(back);
 
-  // Фото
   const photo = new THREE.Mesh(
     new THREE.PlaneGeometry(pw, ph),
     new THREE.MeshStandardMaterial({
-      map: tex,
-      roughness: 0.6,
-      metalness: 0.0,
-      emissive: new THREE.Color(0x111111),
-      emissiveIntensity: 0.05,
+      map: tex, roughness: 0.6, metalness: 0,
+      emissive: new THREE.Color(0x080808),
+      emissiveIntensity: 0.08,
     })
   );
   photo.castShadow = photo.receiveShadow = true;
   group.add(photo);
 
-  // Рамка
   group.add(makeFrame(pw, ph, FRAME_T));
 
-  // Подпись
-  const { texture: lblTex, aspect: lblAsp } = makeTextTexture(PHOTOS[photoIdx].label, {
-    font: 'bold 34px Arial', color: '#f5d078', w: 512, h: 68
-  });
+  const { texture: lblTex, aspect: lblAsp } = makeTextTexture(
+    PHOTOS[photoIdx].label,
+    { font: 'bold 34px Arial', color: '#f5d078', w: 512, h: 68 }
+  );
   const lblH = 0.065;
   const lbl  = new THREE.Mesh(
     new THREE.PlaneGeometry(lblH * lblAsp, lblH),
@@ -266,152 +355,95 @@ async function makePhotoStand(photoIdx, side) {
   lbl.position.set(0, -ph/2 - 0.065, 0.01);
   group.add(lbl);
 
-  // ─ Спот над фото ─
-  const spot = new THREE.SpotLight(0xfff8e7, 4.0, 3.0, Math.PI/8, 0.5, 1.2);
+  const spot = new THREE.SpotLight(0xfff8e7, 5.0, 3.5, Math.PI/8, 0.5, 1.2);
   spot.castShadow = true;
   spot.shadow.mapSize.set(512, 512);
   spot.shadow.bias = -0.001;
-  spot.position.set(0, ph * 0.8, 0.5);
-
-  const spotTarget = new THREE.Object3D();
-  spotTarget.position.set(0, 0, 0);
-  group.add(spotTarget);
-  spot.target = spotTarget;
+  spot.position.set(0, ph * 0.9, 0.6);
+  const st = new THREE.Object3D();
+  group.add(st);
+  spot.target = st;
   group.add(spot);
 
-  // Разворот к зрителю
   group.rotation.y = side > 0 ? -Math.PI/2 : Math.PI/2;
-
   return group;
 }
 
-// ════════════════════════════════════════════════════════
-//  3D ТЕКСТ «30 ЛЕТ / НА СЛУЖБЕ» через ExtrudeGeometry
-// ════════════════════════════════════════════════════════
-
-// PBR-золото — настоящий шейдер
-const GOLD_MAT = new THREE.MeshStandardMaterial({
-  color:            new THREE.Color(0xFFD700),
-  emissive:         new THREE.Color(0x7A5500),
-  emissiveIntensity: 0.2,
-  roughness:        0.15,
-  metalness:        1.0,
-  envMapIntensity:  1.0,
-});
-
-// Простая среда (fake env map через PMREMGenerator)
-function buildEnvMap() {
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  pmrem.compileEquirectangularShader();
-  const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x222222);
-
-  // Несколько цветных источников для отражений
-  [
-    [0xfff5cc, 3,  5,  5],
-    [0xffd080, 2, -5,  3],
-    [0x88aaff, 1,  0, -5],
-  ].forEach(([c, i, x, y]) => {
-    const l = new THREE.PointLight(c, i, 20);
-    l.position.set(x, y, 3);
-    envScene.add(l);
-  });
-
-  const rt  = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04);
-  pmrem.dispose();
-  return rt.texture;
-}
-
-// ─── Буквы из Path (упрощённый набор) ────────────────────
-// Так как THREE.FontLoader требует файл шрифта,
-// строим 3D-текст через Shape + ExtrudeGeometry вручную
-// используем встроенную технику с canvas + путями
-
+// ─── 3D текст (слоёный) ──────────────────────────────────
 function makeGold3DText(text, size, depth, yOffset) {
-  const group = new THREE.Group();
-
-  // Рисуем текст на canvas → получаем bitmap
-  const scale = 200;
-  const cv    = document.createElement('canvas');
-  cv.width    = Math.ceil(text.length * size * scale * 0.65);
-  cv.height   = Math.ceil(size * scale * 1.3);
-  const ctx   = cv.getContext('2d');
-
+  const group  = new THREE.Group();
+  const scale  = 200;
   const pxSize = size * scale;
-  ctx.font     = `900 ${pxSize}px Arial Black, Arial`;
-  ctx.fillStyle = '#ffffff';
-  ctx.textBaseline = 'middle';
-  ctx.textAlign    = 'center';
-  ctx.fillText(text, cv.width/2, cv.height/2);
 
-  // Вытаскиваем контуры пикселей и строим Shape
-  // Вместо трассировки пикселей — используем THREE.ShapePath
-  // Более надёжный способ: текстурированный экструзионный Box
-  // с картой нормалей из canvas
+  const cv  = document.createElement('canvas');
+  cv.width  = Math.ceil(text.length * pxSize * 0.65);
+  cv.height = Math.ceil(pxSize * 1.4);
 
-  // ── Реальный 3D: BoxGeometry с маской текста ──────────
-  // Создаём plane с текстурой + имитируем объём через несколько слоёв
-  const layers = 6;
+  const layers = 7;
   for (let i = 0; i < layers; i++) {
-    const zOff  = (i / layers) * depth - depth/2;
-    const alpha = i === 0 || i === layers-1 ? 1.0 : 0.85;
-    const shade = 1.0 - i * 0.06;
+    const zOff = (i / (layers-1)) * depth - depth/2;
 
-    const layerCV  = document.createElement('canvas');
-    layerCV.width  = cv.width;
-    layerCV.height = cv.height;
-    const lCtx     = layerCV.getContext('2d');
+    const lc  = document.createElement('canvas');
+    lc.width  = cv.width; lc.height = cv.height;
+    const ctx = lc.getContext('2d');
 
-    // Градиент металла
-    const grd = lCtx.createLinearGradient(0, 0, cv.width, cv.height);
-    grd.addColorStop(0.0,  `rgba(255,245,150,${alpha})`);
-    grd.addColorStop(0.2,  `rgba(255,215,  0,${alpha})`);
-    grd.addColorStop(0.4,  `rgba(200,160, 30,${alpha})`);
-    grd.addColorStop(0.6,  `rgba(255,220, 50,${alpha})`);
-    grd.addColorStop(0.8,  `rgba(180,130, 10,${alpha})`);
-    grd.addColorStop(1.0,  `rgba(255,200, 20,${alpha})`);
+    const grd = ctx.createLinearGradient(0, 0, lc.width, lc.height);
+    grd.addColorStop(0.00, '#FFF5A0');
+    grd.addColorStop(0.15, '#FFD700');
+    grd.addColorStop(0.35, '#C8860A');
+    grd.addColorStop(0.50, '#FFD700');
+    grd.addColorStop(0.65, '#AA6C00');
+    grd.addColorStop(0.80, '#FFD700');
+    grd.addColorStop(1.00, '#FFF0A0');
 
-    // Вырезаем по форме текста (clip)
-    lCtx.font         = `900 ${pxSize}px Arial Black, Arial`;
-    lCtx.textBaseline = 'middle';
-    lCtx.textAlign    = 'center';
-    lCtx.fillStyle    = grd;
-    lCtx.fillText(text, cv.width/2, cv.height/2);
+    ctx.font         = `900 ${pxSize}px Arial Black, Arial`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'center';
+    ctx.fillStyle    = grd;
+    ctx.fillText(text, lc.width/2, lc.height/2);
 
-    // Блик
+    // Блик на верхнем слое
     if (i === layers - 1) {
-      const shine = lCtx.createLinearGradient(0, 0, cv.width*0.6, cv.height*0.6);
-      shine.addColorStop(0,   'rgba(255,255,255,0.55)');
-      shine.addColorStop(0.5, 'rgba(255,255,255,0.0)');
-      lCtx.globalCompositeOperation = 'source-atop';
-      lCtx.fillStyle = shine;
-      lCtx.fillText(text, cv.width/2, cv.height/2);
-      lCtx.globalCompositeOperation = 'source-over';
+      const shine = ctx.createLinearGradient(0, 0, lc.width * 0.5, lc.height * 0.5);
+      shine.addColorStop(0,   'rgba(255,255,255,0.6)');
+      shine.addColorStop(0.4, 'rgba(255,255,255,0.0)');
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = shine;
+      ctx.fillText(text, lc.width/2, lc.height/2);
+      ctx.globalCompositeOperation = 'source-over';
     }
 
-    const tex   = new THREE.CanvasTexture(layerCV);
+    // Тёмный срез на боковых слоях
+    if (i > 0 && i < layers - 1) {
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = `rgba(0,0,0,${0.04 * i})`;
+      ctx.fillRect(0, 0, lc.width, lc.height);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    const tex  = new THREE.CanvasTexture(lc);
     tex.encoding = THREE.sRGBEncoding;
 
-    const w = cv.width  / scale;
-    const h = cv.height / scale;
+    const w = lc.width  / scale;
+    const h = lc.height / scale;
 
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
       new THREE.MeshStandardMaterial({
-        map:          tex,
-        transparent:  true,
-        alphaTest:    0.05,
-        roughness:    0.15 + i * 0.04,
-        metalness:    0.95,
-        emissive:     new THREE.Color(0x7A5500),
-        emissiveMap:  tex,
-        emissiveIntensity: 0.25,
-        side: THREE.DoubleSide,
-        depthWrite: i === layers - 1,
+        map:           tex,
+        transparent:   true,
+        alphaTest:     0.05,
+        roughness:     0.12,
+        metalness:     1.0,
+        emissive:      new THREE.Color(0x7A5500),
+        emissiveMap:   tex,
+        emissiveIntensity: 0.3,
+        side:          THREE.DoubleSide,
+        depthWrite:    i === layers - 1,
       })
     );
-    mesh.position.z  = zOff;
-    mesh.castShadow  = true;
+    mesh.position.z = zOff;
+    mesh.castShadow = true;
     group.add(mesh);
   }
 
@@ -421,27 +453,24 @@ function makeGold3DText(text, size, depth, yOffset) {
 
 // ─── Пьедестал ───────────────────────────────────────────
 function makePedestal() {
-  const group = new THREE.Group();
-  const mat   = new THREE.MeshStandardMaterial({
-    color: 0x2a2a2a, roughness: 0.45, metalness: 0.5
-  });
-  const topMat = new THREE.MeshStandardMaterial({
-    color:     new THREE.Color(0xc8a84b),
-    emissive:  new THREE.Color(0x3a2800),
-    emissiveIntensity: 0.1,
+  const group  = new THREE.Group();
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x252525, roughness: 0.5, metalness: 0.5 });
+  const goldMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0xc8a84b),
+    emissive: new THREE.Color(0x3a2800), emissiveIntensity: 0.15,
     roughness: 0.2, metalness: 0.95
   });
 
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.07, 6), mat);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.07, 6), darkMat);
   base.castShadow = base.receiveShadow = true;
   group.add(base);
 
-  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.45, 6), mat);
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.45, 6), darkMat);
   col.position.y = 0.26;
   col.castShadow = col.receiveShadow = true;
   group.add(col);
 
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.13, 0.05, 6), topMat);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.13, 0.05, 6), goldMat);
   top.position.y = 0.51;
   top.castShadow = top.receiveShadow = true;
   group.add(top);
@@ -450,55 +479,45 @@ function makePedestal() {
 }
 
 // ════════════════════════════════════════════════════════
-//  СБОРКА СЦЕНЫ
+//  СБОРКА ГАЛЕРЕИ
 // ════════════════════════════════════════════════════════
 const galleryRoot = new THREE.Group();
 galleryRoot.visible = false;
 scene.add(galleryRoot);
 galleryRoot.add(floorMesh);
 
-// Асинхронная расстановка фото
+let signGroup = null;
+
 async function buildGallery() {
   const promises = [];
-
   for (let i = 0; i < 10; i++) {
     const side = i % 2 === 0 ? -1 : 1;
     const idx  = Math.floor(i / 2);
-
     promises.push(
       makePhotoStand(i, side).then(stand => {
-        stand.position.set(
-          side * SIDE_DIST,
-          STAND_H,
-          -(idx * SPACING)
-        );
+        stand.position.set(side * SIDE_DIST, STAND_H, -(idx * SPACING));
         galleryRoot.add(stand);
       })
     );
   }
-
   await Promise.all(promises);
 
-  // Пьедестал
-  const endZ    = -(4 * SPACING + 1.3);
+  const endZ     = -(4 * SPACING + 1.3);
   const pedestal = makePedestal();
   pedestal.position.set(0, 0, endZ);
   galleryRoot.add(pedestal);
 
-  // 3D надпись «30 ЛЕТ» — крупно
-  const text30  = makeGold3DText('30 ЛЕТ', 0.22, 0.06, 0);
-  // 3D надпись «НА СЛУЖБЕ» — поменьше
-  const textSvc = makeGold3DText('НА СЛУЖБЕ', 0.10, 0.035, -0.17);
+  const text30  = makeGold3DText('30 ЛЕТ',    0.22, 0.06, 0);
+  const textSvc = makeGold3DText('НА СЛУЖБЕ', 0.11, 0.03, -0.19);
 
-  // Группа надписи — ниже, ближе к пьедесталу
-  const signGroup = new THREE.Group();
+  signGroup = new THREE.Group();
   signGroup.add(text30);
   signGroup.add(textSvc);
-  signGroup.position.set(0, 0.72, endZ); // ↓ ниже (было 1.35)
+  signGroup.position.set(0, 0.72, endZ);
   galleryRoot.add(signGroup);
 
   // Прожектор на пьедестал
-  const pedesSpot = new THREE.SpotLight(0xffd080, 5.0, 4, Math.PI/7, 0.3, 1.2);
+  const pedesSpot = new THREE.SpotLight(0xffd080, 6.0, 4, Math.PI/7, 0.3, 1.2);
   pedesSpot.castShadow = true;
   pedesSpot.shadow.mapSize.set(512, 512);
   pedesSpot.position.set(0, 2.5, endZ + 0.7);
@@ -508,55 +527,73 @@ async function buildGallery() {
   pedesSpot.target = pt;
   galleryRoot.add(pedesSpot);
 
-  // Точечный свет — золотое сияние вокруг надписи
-  const glow = new THREE.PointLight(0xffd060, 2.5, 1.5);
-  glow.position.set(0, 0.85, endZ);
+  const glow = new THREE.PointLight(0xffd060, 3.0, 1.8);
+  glow.position.set(0, 0.9, endZ);
   galleryRoot.add(glow);
 
-  // Env map для золота
+  // Env map
   try {
-    const envMap = buildEnvMap();
+    const pmrem    = new THREE.PMREMGenerator(renderer);
+    const envScene = new THREE.RoomEnvironment();
+    const envMap   = pmrem.fromScene(envScene, 0.04).texture;
     scene.environment = envMap;
+    pmrem.dispose();
   } catch(e) {}
-
-  return signGroup;
 }
 
-let signGroup = null;
-buildGallery().then(sg => { signGroup = sg; });
+buildGallery();
 
 // ─── Маркер ──────────────────────────────────────────────
 const reticle = new THREE.Mesh(
-  new THREE.RingGeometry(0.08, 0.12, 32).rotateX(-Math.PI/2),
+  new THREE.RingGeometry(0.08, 0.13, 32).rotateX(-Math.PI/2),
   new THREE.MeshBasicMaterial({ color: 0xf5d078, side: THREE.DoubleSide })
 );
 reticle.visible = false;
 scene.add(reticle);
 
 // ════════════════════════════════════════════════════════
-//  DOM / XR
+//  DOM
 // ════════════════════════════════════════════════════════
-const overlay  = document.getElementById('overlay');
-const startBtn = document.getElementById('startBtn');
-const errorMsg = document.getElementById('errorMsg');
-const hint     = document.getElementById('hint');
-const exitBtn  = document.getElementById('exitBtn');
+const overlay   = document.getElementById('overlay');
+const errorMsg  = document.getElementById('errorMsg');
+const hint      = document.getElementById('hint');
+const exitBtn   = document.getElementById('exitBtn');
+const modeBadge = document.getElementById('modeBadge');
+const placeBtn  = document.getElementById('placeBtn');
+const controls  = document.getElementById('controls');
+const videoBg   = document.getElementById('videoBackground');
+const btnAR     = document.getElementById('btnAR');
+const btnCamera = document.getElementById('btnCamera');
+const btnDesktop= document.getElementById('btnDesktop');
 
 let xrSession  = null;
 let hitTestSrc = null;
 let placed     = false;
 const clock    = new THREE.Clock();
 
-async function startAR() {
-  startBtn.disabled = true;
+// ─── Кнопки выбора режима ────────────────────────────────
+btnAR.addEventListener('click',      () => startWebXR());
+btnCamera.addEventListener('click',  () => startCameraMode());
+btnDesktop.addEventListener('click', () => startDesktopMode());
+
+function showError(m) {
+  errorMsg.textContent   = m;
+  errorMsg.style.display = 'block';
+}
+
+// ════════════════════════════════════════════════════════
+//  РЕЖИМ 1: WebXR (Chrome Android)
+// ════════════════════════════════════════════════════════
+async function startWebXR() {
+  btnAR.disabled = true;
   if (!navigator.xr) {
-    showError('WebXR не поддерживается. Нужен Chrome на Android.');
-    startBtn.disabled = false; return;
+    showError('WebXR недоступен. Попробуйте режим камеры ↓');
+    btnAR.disabled = false; return;
   }
-  const ok = await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+  const ok = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
   if (!ok) {
-    showError('AR не поддерживается на этом устройстве.');
-    startBtn.disabled = false; return;
+    showError('AR не поддерживается. Попробуйте режим камеры ↓');
+    btnAR.disabled = false; return;
   }
 
   try {
@@ -565,43 +602,44 @@ async function startAR() {
       optionalFeatures: ['dom-overlay'],
       domOverlay: { root: document.body }
     });
-
+    APP_MODE = 'webxr';
     renderer.xr.setReferenceSpaceType('local');
     await renderer.xr.setSession(xrSession);
 
-    overlay.style.display = 'none';
-    hint.style.display    = 'block';
-    hint.textContent      = '📍 Наведите на пол и нажмите — разместить галерею';
-    exitBtn.style.display = 'block';
+    overlay.style.display   = 'none';
+    hint.style.display      = 'block';
+    hint.textContent        = '📍 Наведите на пол и нажмите';
+    exitBtn.style.display   = 'block';
+    modeBadge.textContent   = '🟢 WebXR AR';
+    modeBadge.style.display = 'block';
 
     const viewerSpace = await xrSession.requestReferenceSpace('viewer');
-    hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
+    hitTestSrc = await xrSession.requestHitTest
+        hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
 
-    renderer.domElement.addEventListener('click', onTap);
+    renderer.domElement.addEventListener('click', onTapXR);
     xrSession.addEventListener('end', onEnd);
-    renderer.setAnimationLoop(onFrame);
+    renderer.setAnimationLoop(onFrameXR);
 
   } catch(e) {
     showError('Ошибка: ' + e.message);
-    startBtn.disabled = false;
+    btnAR.disabled = false;
   }
 }
 
-function onTap() {
+function onTapXR() {
   if (!reticle.visible || placed) return;
   placed = true;
-
   galleryRoot.position.copy(reticle.position);
   floorMesh.position.copy(reticle.position);
-  floorMesh.visible    = true;
-  galleryRoot.visible  = true;
-  reticle.visible      = false;
-
-  hint.textContent = '🚶 Пройдитесь вдоль галереи!';
-  setTimeout(() => { hint.style.display = 'none'; }, 5000);
+  floorMesh.visible   = true;
+  galleryRoot.visible = true;
+  reticle.visible     = false;
+  hint.textContent    = '🚶 Пройдитесь вдоль галереи!';
+  setTimeout(() => { hint.style.display = 'none'; }, 4000);
 }
 
-function onFrame(time, frame) {
+function onFrameXR(time, frame) {
   if (!frame) return;
   const refSpace = renderer.xr.getReferenceSpace();
 
@@ -617,45 +655,303 @@ function onFrame(time, frame) {
     }
   }
 
-  if (placed && signGroup) {
-    const t = clock.getElapsedTime();
-    // Левитация
-    signGroup.position.y = 0.72 + Math.sin(t * 1.1) * 0.04;
-    signGroup.rotation.y = Math.sin(t * 0.35) * 0.12;
-
-    // Пульсация золотого свечения
-    galleryRoot.children.forEach(c => {
-      if (c.isPointLight) {
-        c.intensity = 2.2 + Math.sin(t * 2.2) * 0.8;
-      }
-    });
-  }
-
+  animateScene();
   renderer.render(scene, camera);
 }
 
+// ════════════════════════════════════════════════════════
+//  РЕЖИМ 2: Камера (любой браузер — Яндекс, Safari и тд)
+// ════════════════════════════════════════════════════════
+
+// Позиция камеры для ручного управления
+const camPos = { x: 0, y: 1.6, z: 2.5 };
+let   camRotY = 0;       // поворот камеры по Y
+let   galleryPlaced = false;
+
+// Касание — для свайпа камерой
+let touchStartX = 0;
+let touchStartY = 0;
+
+async function startCameraMode() {
+  btnCamera.disabled = true;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    });
+    videoBg.srcObject   = stream;
+    videoBg.style.display = 'block';
+    APP_MODE = 'camera';
+
+  } catch(e) {
+    // Нет доступа к камере — просто чёрный фон
+    APP_MODE = 'camera';
+    console.warn('Камера недоступна:', e.message);
+  }
+
+  // Прозрачный фон рендерера — видно видео под ним
+  renderer.setClearColor(0x000000, 0);
+
+  overlay.style.display   = 'none';
+  exitBtn.style.display   = 'block';
+  placeBtn.style.display  = 'block';
+  controls.style.display  = 'flex';
+  modeBadge.textContent   = '📷 Режим камеры';
+  modeBadge.style.display = 'block';
+  hint.style.display      = 'block';
+  hint.textContent        = '👆 Нажмите «Поставить галерею», затем управляйте стрелками';
+
+  // Сразу показываем галерею перед собой
+  galleryRoot.position.set(0, -1.6, -2);
+  galleryRoot.visible = true;
+  floorMesh.position.set(0, -1.6, 0);
+  floorMesh.visible   = true;
+
+  setupCameraControls();
+  renderer.setAnimationLoop(onFrameCamera);
+}
+
+function setupCameraControls() {
+  // Кнопки джойстика
+  const moveStep = 0.08;
+  const rotStep  = 0.05;
+
+  const actions = {
+    cUp:    () => { galleryRoot.position.z -= moveStep; floorMesh.position.z -= moveStep; },
+    cDown:  () => { galleryRoot.position.z += moveStep; floorMesh.position.z += moveStep; },
+    cLeft:  () => { galleryRoot.position.x -= moveStep; floorMesh.position.x -= moveStep; },
+    cRight: () => { galleryRoot.position.x += moveStep; floorMesh.position.x += moveStep; },
+    cRotL:  () => { galleryRoot.rotation.y += rotStep; },
+    cRotR:  () => { galleryRoot.rotation.y -= rotStep; },
+  };
+
+  // Интервалы для зажатия кнопок
+  const intervals = {};
+
+  Object.entries(actions).forEach(([id, fn]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const start = () => {
+      fn();
+      intervals[id] = setInterval(fn, 80);
+    };
+    const stop = () => clearInterval(intervals[id]);
+
+    el.addEventListener('touchstart',  e => { e.preventDefault(); start(); }, { passive: false });
+    el.addEventListener('touchend',    stop);
+    el.addEventListener('touchcancel', stop);
+    el.addEventListener('mousedown',   start);
+    el.addEventListener('mouseup',     stop);
+    el.addEventListener('mouseleave',  stop);
+  });
+
+  // Свайп по экрану — поворот камеры
+  renderer.domElement.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  renderer.domElement.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+    camRotY  -= dx * 0.003;
+    camPos.y += dy * 0.002;
+    camPos.y  = Math.max(0.5, Math.min(3.0, camPos.y));
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  // Мышь (для desktop тестирования)
+  let mouseDown = false;
+  let lastMouseX = 0;
+  renderer.domElement.addEventListener('mousedown', e => {
+    mouseDown  = true;
+    lastMouseX = e.clientX;
+  });
+  renderer.domElement.addEventListener('mousemove', e => {
+    if (!mouseDown) return;
+    camRotY   -= (e.clientX - lastMouseX) * 0.005;
+    lastMouseX = e.clientX;
+  });
+  renderer.domElement.addEventListener('mouseup',   () => mouseDown = false);
+
+  // Колёсико — зум (desktop)
+  renderer.domElement.addEventListener('wheel', e => {
+    camPos.z += e.deltaY * 0.002;
+    camPos.z  = Math.max(0.5, Math.min(6, camPos.z));
+  }, { passive: true });
+}
+
+function onFrameCamera() {
+  // Обновляем камеру
+  camera.position.x = camPos.x + Math.sin(camRotY) * camPos.z;
+  camera.position.y = camPos.y;
+  camera.position.z = camPos.z * Math.cos(camRotY);
+  camera.lookAt(
+    galleryRoot.position.x,
+    galleryRoot.position.y + 0.5,
+    galleryRoot.position.z - 1.5
+  );
+
+  animateScene();
+  renderer.render(scene, camera);
+}
+
+// Кнопка «Поставить галерею»
+placeBtn.addEventListener('click', () => {
+  hint.textContent = '🚶 Используйте стрелки для навигации. Свайп — поворот камеры.';
+  setTimeout(() => { hint.style.display = 'none'; }, 5000);
+  placeBtn.style.display = 'none';
+});
+
+// ════════════════════════════════════════════════════════
+//  РЕЖИМ 3: Desktop — без камеры
+// ════════════════════════════════════════════════════════
+function startDesktopMode() {
+  APP_MODE = 'desktop';
+  renderer.setClearColor(0x1a1a2e, 1);
+
+  // Туманный фон
+  scene.background = new THREE.Color(0x1a1a2e);
+  scene.fog        = new THREE.Fog(0x1a1a2e, 8, 20);
+
+  // Пол видимый
+  const gridHelper = new THREE.GridHelper(20, 20, 0x333366, 0x222244);
+  scene.add(gridHelper);
+
+  galleryRoot.position.set(0, 0, 0);
+  galleryRoot.visible = true;
+  floorMesh.visible   = true;
+
+  overlay.style.display   = 'none';
+  exitBtn.style.display   = 'block';
+  modeBadge.textContent   = '🖥️ Превью';
+  modeBadge.style.display = 'block';
+  hint.style.display      = 'block';
+  hint.textContent        = '🖱️ Мышь — поворот | Колёсико — зум | ПКМ — перемещение';
+
+  setupDesktopControls();
+  renderer.setAnimationLoop(onFrameDesktop);
+}
+
+function setupDesktopControls() {
+  let isDown    = false;
+  let isRightDown = false;
+  let lastX = 0, lastY = 0;
+  const spherical = { theta: 0, phi: Math.PI/4, r: 4 };
+  const target    = new THREE.Vector3(0, 0.8, -2);
+
+  function updateCamera() {
+    camera.position.x = target.x + spherical.r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+    camera.position.y = target.y + spherical.r * Math.cos(spherical.phi);
+    camera.position.z = target.z + spherical.r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+    camera.lookAt(target);
+  }
+  updateCamera();
+
+  renderer.domElement.addEventListener('mousedown', e => {
+    if (e.button === 0) { isDown = true; }
+    if (e.button === 2) { isRightDown = true; }
+    lastX = e.clientX; lastY = e.clientY;
+  });
+  renderer.domElement.addEventListener('mousemove', e => {
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+
+    if (isDown) {
+      spherical.theta -= dx * 0.005;
+      spherical.phi    = Math.max(0.1, Math.min(Math.PI/2, spherical.phi + dy * 0.005));
+      updateCamera();
+    }
+    if (isRightDown) {
+      target.x -= dx * 0.005;
+      target.y += dy * 0.005;
+      updateCamera();
+    }
+  });
+  window.addEventListener('mouseup', () => { isDown = false; isRightDown = false; });
+  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+  renderer.domElement.addEventListener('wheel', e => {
+    spherical.r = Math.max(0.5, Math.min(10, spherical.r + e.deltaY * 0.005));
+    updateCamera();
+  }, { passive: true });
+
+  // Стрелки клавиатуры
+  window.addEventListener('keydown', e => {
+    const step = 0.15;
+    if (e.key === 'ArrowLeft')  { target.x -= step; updateCamera(); }
+    if (e.key === 'ArrowRight') { target.x += step; updateCamera(); }
+    if (e.key === 'ArrowUp')    { target.z -= step; updateCamera(); }
+    if (e.key === 'ArrowDown')  { target.z += step; updateCamera(); }
+  });
+}
+
+function onFrameDesktop() {
+  animateScene();
+  renderer.render(scene, camera);
+}
+
+// ════════════════════════════════════════════════════════
+//  ОБЩАЯ АНИМАЦИЯ (все режимы)
+// ════════════════════════════════════════════════════════
+function animateScene() {
+  if (!signGroup) return;
+  const t = clock.getElapsedTime();
+
+  // Левитация надписи
+  signGroup.position.y = 0.72 + Math.sin(t * 1.1) * 0.045;
+  signGroup.rotation.y = Math.sin(t * 0.35) * 0.12;
+
+  // Пульсация золотого свечения
+  galleryRoot.children.forEach(c => {
+    if (c.isPointLight) {
+      c.intensity = 2.5 + Math.sin(t * 2.2) * 0.9;
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  ВЫХОД
+// ════════════════════════════════════════════════════════
 function onEnd() {
   renderer.setAnimationLoop(null);
   if (hitTestSrc) { hitTestSrc.cancel(); hitTestSrc = null; }
-  placed = false;
+
+  // Остановить камеру
+  if (videoBg.srcObject) {
+    videoBg.srcObject.getTracks().forEach(t => t.stop());
+    videoBg.srcObject = null;
+  }
+  videoBg.style.display  = 'none';
+
+  placed              = false;
   galleryRoot.visible = false;
   reticle.visible     = false;
   floorMesh.visible   = false;
-  renderer.domElement.removeEventListener('click', onTap);
+  scene.background    = null;
+  scene.fog           = null;
+  renderer.setClearColor(0x000000, 0);
+
+  controls.style.display  = 'none';
+  placeBtn.style.display  = 'none';
   overlay.style.display   = '';
   hint.style.display      = 'none';
   exitBtn.style.display   = 'none';
-  startBtn.disabled       = false;
-  clock.getDelta();
+  modeBadge.style.display = 'none';
+  btnAR.disabled          = false;
+  btnCamera.disabled      = false;
+  APP_MODE                = null;
 }
 
-startBtn.addEventListener('click', startAR);
-exitBtn.addEventListener('click', () => xrSession?.end());
+exitBtn.addEventListener('click', () => {
+  if (xrSession) { xrSession.end(); }
+  else           { onEnd(); }
+});
 
-function showError(m) {
-  errorMsg.textContent  = m;
-  errorMsg.style.display = 'block';
-}
+xrSession?.addEventListener?.('end', onEnd);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
