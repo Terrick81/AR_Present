@@ -1,102 +1,291 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR с полом</title>
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AR Куб</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: Arial, sans-serif; }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      z-index: 10;
+    }
+
+    #overlay h1 { font-size: 1.8rem; margin-bottom: 12px; }
+    #overlay p  { font-size: 1rem; color: #aaa; margin-bottom: 30px; text-align: center; max-width: 300px; }
+
+    #startBtn {
+      padding: 14px 36px;
+      font-size: 1.1rem;
+      background: #4f8ef7;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #startBtn:hover { background: #2f6ed5; }
+    #startBtn:disabled { background: #555; cursor: default; }
+
+    #hint {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      z-index: 5;
+      display: none;
+      text-align: center;
+    }
+
+    #exitBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      z-index: 5;
+      display: none;
+    }
+
+    canvas { display: block; }
+  </style>
 </head>
-<body style="margin:0; overflow:hidden; background-color: black;">
-  
-  <a-scene 
-    embedded 
-    arjs="
-      sourceType: webcam;
-      debugUIEnabled: false;
-      detectionMode: mono;
-      matrixCodeType: 3x3;
-      camera: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/three.js/examples/camera_para.dat';
-      maxTolerance: 0.05;
-    "
-    renderer="antialias: true; alpha: false; logarithmicDepthBuffer: true;"
-    vr-mode-ui="enabled: false"
-  >
+<body>
 
-    <!-- КАМЕРА: отключаем всякое слежение за движением -->
-    <a-camera position="0 1.6 0" look-controls="enabled: false"></a-camera>
+<div id="overlay">
+  <h1>🟦 AR Куб</h1>
+  <p>Наведите камеру на пол и нажмите кнопку, чтобы разместить куб</p>
+  <button id="startBtn">Запустить AR</button>
+  <p id="errorMsg" style="color:#f77; margin-top:16px; display:none;"></p>
+</div>
 
-    <!-- НЕВИДИМАЯ ПЛОСКОСТЬ для обнаружения пола -->
-    <a-plane 
-      id="ground" 
-      position="0 0 -3" 
-      rotation="-90 0 0" 
-      width="10" 
-      height="10" 
-      visible="false"
-      shadow="receive"
-      arjs-hit-test="enabled: true; target: #my-object;"
-    ></a-plane>
+<div id="hint">📍 Наведите на пол и нажмите, чтобы поставить куб</div>
+<button id="exitBtn">✕ Выйти</button>
 
-    <!-- ГЛАВНЫЙ ОБЪЕКТ: привязываем к hit-test -->
-    <a-entity 
-      id="my-object"
-      position="0 -0.5 -2"
-      scale="0.8 0.8 0.8"
-      arjs-hit-test="enabled: true;"
-    >
-      <!-- ВАШ КУБ -->
-      <a-box 
-        material="color: #ff5500; roughness: 0.3; metalness: 0.2;"
-        shadow
-      ></a-box>
-      
-      <!-- ТЕНЬ для визуального контакта с полом -->
-      <a-circle 
-        position="0 -0.5 0" 
-        rotation="-90 0 0" 
-        radius="0.4" 
-        material="color: black; opacity: 0.3; transparent: true;"
-      ></a-circle>
-    </a-entity>
+<!-- Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<!-- WebXR Polyfill (для браузеров без нативного WebXR) -->
+<script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js"></script>
 
-    <!-- СЕТКА ПОЛА (для наглядности) -->
-    <a-grid 
-      position="0 0 -2" 
-      rotation="-90 0 0" 
-      grid="side: double" 
-      material="color: #88ccff; opacity: 0.15;"
-    ></a-grid>
+<script>
+  // ─── Polyfill (если нужен) ───────────────────────────────────────
+  const polyfill = new WebXRPolyfill();
 
-    <!-- ИНСТРУКЦИЯ -->
-    <a-text 
-      value="⬇️ Наведите на пол и постойте 2 секунды" 
-      position="0 1.8 -2.5" 
-      color="white" 
-      align="center" 
-      scale="0.6 0.6 0.6"
-    ></a-text>
+  // ─── DOM ─────────────────────────────────────────────────────────
+  const overlay   = document.getElementById('overlay');
+  const startBtn  = document.getElementById('startBtn');
+  const errorMsg  = document.getElementById('errorMsg');
+  const hint      = document.getElementById('hint');
+  const exitBtn   = document.getElementById('exitBtn');
 
-  </a-scene>
+  // ─── Three.js ────────────────────────────────────────────────────
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
 
-  <script>
-    // ПРИНУДИТЕЛЬНАЯ КАЛИБРОВКА: просим пользователя поводить телефоном
-    document.querySelector('a-scene').addEventListener('enter-vr', function() {
-      console.log('AR запущен. Наведите на пол.');
-    });
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 50);
 
-    // Если объект всё ещё "едет" — принудительно обновляем позицию каждые 100мс
-    setInterval(() => {
-      const obj = document.getElementById('my-object');
-      if (obj) {
-        // Проверяем, стоит ли объект на месте
-        const pos = obj.getAttribute('position');
-        if (pos && pos.x === 0 && pos.y === -0.5 && pos.z === -2) {
-          // Если объект не привязался — даём команду на повторный поиск пола
-          obj.setAttribute('arjs-hit-test', 'enabled: true');
-        }
+  // Освещение
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  dirLight.position.set(1, 3, 2);
+  dirLight.castShadow = true;
+  scene.add(dirLight);
+
+  // ─── Куб ─────────────────────────────────────────────────────────
+  const cubeSize = 0.3; // 30 см
+
+  const cubeMat = new THREE.MeshStandardMaterial({
+    color: 0x4f8ef7,
+    roughness: 0.4,
+    metalness: 0.2,
+  });
+
+  // Рёбра куба (wireframe поверх)
+  const cubeGeo   = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+  const cube      = new THREE.Mesh(cubeGeo, cubeMat);
+  cube.castShadow = true;
+
+  const edgesGeo  = new THREE.EdgesGeometry(cubeGeo);
+  const edgesMat  = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 });
+  const edges     = new THREE.LineSegments(edgesGeo, edgesMat);
+  cube.add(edges);
+
+  // Группа: куб стоит на полу (смещён вверх на половину размера)
+  const cubeGroup = new THREE.Group();
+  cube.position.y = cubeSize / 2;
+  cubeGroup.add(cube);
+  cubeGroup.visible = false;
+  scene.add(cubeGroup);
+
+  // ─── Маркер (кольцо на полу) ─────────────────────────────────────
+  const reticleGeo = new THREE.RingGeometry(0.08, 0.12, 32);
+  reticleGeo.rotateX(-Math.PI / 2);
+  const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  const reticle    = new THREE.Mesh(reticleGeo, reticleMat);
+  reticle.visible  = false;
+  scene.add(reticle);
+
+  // ─── Состояние ───────────────────────────────────────────────────
+  let xrSession   = null;
+  let hitTestSrc  = null;
+  let cubeSet     = false;        // куб уже установлен?
+
+  // ─── Анимация куба ───────────────────────────────────────────────
+  let clock = new THREE.Clock();
+
+  // ─── Запуск AR ───────────────────────────────────────────────────
+  async function startAR() {
+    startBtn.disabled = true;
+
+    if (!navigator.xr) {
+      showError('WebXR не поддерживается в этом браузере. Используйте Chrome на Android.');
+      startBtn.disabled = false;
+      return;
+    }
+
+    const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+    if (!supported) {
+      showError('AR не поддерживается на этом устройстве/браузере.');
+      startBtn.disabled = false;
+      return;
+    }
+
+    try {
+      xrSession = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.body }
+      });
+
+      renderer.xr.setReferenceSpaceType('local');
+      await renderer.xr.setSession(xrSession);
+
+      overlay.style.display = 'none';
+      hint.style.display    = 'block';
+      exitBtn.style.display = 'block';
+
+      // Hit-test source
+      const viewerSpace = await xrSession.requestReferenceSpace('viewer');
+      hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
+
+      // Тап / клик — размещаем куб
+      renderer.domElement.addEventListener('click', placeCube);
+
+      xrSession.addEventListener('end', onSessionEnd);
+      renderer.setAnimationLoop(onFrame);
+
+    } catch(e) {
+      showError('Ошибка запуска AR: ' + e.message);
+      startBtn.disabled = false;
+    }
+  }
+
+  // ─── Кадр ────────────────────────────────────────────────────────
+  function onFrame(time, frame) {
+    if (!frame) return;
+
+    const refSpace = renderer.xr.getReferenceSpace();
+    const session  = renderer.xr.getSession();
+
+    // Hit-test → двигаем маркер
+    if (hitTestSrc && !cubeSet) {
+      const hits = frame.getHitTestResults(hitTestSrc);
+      if (hits.length > 0) {
+        const pose = hits[0].getPose(refSpace);
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+        reticle.matrix.decompose(reticle.position, reticle.quaternion, reticle.scale);
+      } else {
+        reticle.visible = false;
       }
-    }, 2000);
-  </script>
+    }
+
+    // Вращение куба
+    if (cubeGroup.visible) {
+      const delta = clock.getDelta();
+      cube.rotation.y += delta * 0.5;
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  // ─── Разместить куб ──────────────────────────────────────────────
+  function placeCube() {
+    if (!reticle.visible || cubeSet) return;
+
+    cubeGroup.position.copy(reticle.position);
+    cubeGroup.quaternion.copy(reticle.quaternion);
+    cubeGroup.visible = true;
+
+    reticle.visible = false;
+    cubeSet = true;
+
+    hint.textContent = '🚶 Обойдите куб — посмотрите со всех сторон!';
+    setTimeout(() => { hint.style.display = 'none'; }, 4000);
+  }
+
+  // ─── Конец сессии ────────────────────────────────────────────────
+  function onSessionEnd() {
+    renderer.setAnimationLoop(null);
+    hitTestSrc?.cancel();
+    hitTestSrc = null;
+    cubeSet = false;
+    cubeGroup.visible = false;
+    reticle.visible   = false;
+
+    renderer.domElement.removeEventListener('click', placeCube);
+
+    overlay.style.display = '';
+    hint.style.display    = 'none';
+    exitBtn.style.display = 'none';
+    startBtn.disabled     = false;
+    clock.getDelta(); // сбросить
+  }
+
+  // ─── Кнопки ──────────────────────────────────────────────────────
+  startBtn.addEventListener('click', startAR);
+
+  exitBtn.addEventListener('click', () => {
+    xrSession?.end();
+  });
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.style.display = 'block';
+  }
+
+  // ─── Ресайз ──────────────────────────────────────────────────────
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
 </body>
 </html>
