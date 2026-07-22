@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AR Галерея — 30 лет на службе</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,12 +12,11 @@
       position: fixed; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.92);
+      background: rgba(0,0,0,0.9);
       color: white; z-index: 10;
     }
     #overlay h1 { font-size: 1.8rem; margin-bottom: 8px; text-align: center; }
-    #overlay p  { font-size: 0.95rem; color: #aaa; margin-bottom: 24px;
-                  text-align: center; max-width: 320px; line-height: 1.5; }
+    #overlay p  { font-size: 0.95rem; color: #aaa; margin-bottom: 24px; text-align: center; max-width: 320px; line-height: 1.5; }
 
     #startBtn {
       padding: 14px 40px; font-size: 1.1rem;
@@ -25,7 +24,6 @@
       color: #1a1a1a; border: none; border-radius: 50px;
       cursor: pointer; font-weight: bold;
       box-shadow: 0 4px 20px rgba(200,168,75,0.4);
-      -webkit-tap-highlight-color: transparent;
     }
     #startBtn:disabled { background: #555; color: #999; box-shadow: none; cursor: default; }
 
@@ -35,119 +33,52 @@
       padding: 10px 22px; border-radius: 20px;
       font-size: 0.9rem; z-index: 5; display: none; text-align: center;
       border: 1px solid rgba(255,255,255,0.15);
-      pointer-events: none;
     }
     #exitBtn {
       position: fixed; top: 20px; right: 20px;
       background: rgba(0,0,0,0.5); color: white;
       border: 1px solid rgba(255,255,255,0.3);
       padding: 8px 18px; border-radius: 20px;
-      cursor: pointer; font-size: 0.9rem; z-index: 20; display: none;
-      -webkit-tap-highlight-color: transparent;
+      cursor: pointer; font-size: 0.9rem; z-index: 5; display: none;
     }
-    #errorMsg {
-      color: #f77; margin-top: 14px; font-size: 0.9rem;
-      display: none; text-align: center; max-width: 300px;
-    }
-    /* Видео-фон для iOS/fallback режима */
-    #videoBackground {
-      position: fixed; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      z-index: 0;
-      display: none;
-      background: #000;
-    }
-    /* Канвас Three.js поверх видео */
-    canvas {
-      position: fixed !important;
-      inset: 0;
-      z-index: 1;
-    }
-    /* Индикатор режима */
-    #modeIndicator {
-      position: fixed; top: 20px; left: 20px;
-      background: rgba(0,0,0,0.5); color: #f5d078;
-      padding: 6px 14px; border-radius: 16px;
-      font-size: 0.78rem; z-index: 20; display: none;
-      border: 1px solid rgba(245,208,120,0.3);
-    }
-    /* Кнопка размещения для fallback */
-    #placeBtn {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(135deg, #c8a84b, #f5d078);
-      color: #1a1a1a; border: none; border-radius: 50px;
-      padding: 12px 32px; font-size: 1rem; font-weight: bold;
-      cursor: pointer; z-index: 20; display: none;
-      box-shadow: 0 4px 16px rgba(200,168,75,0.5);
-      -webkit-tap-highlight-color: transparent;
-    }
-    /* Прицел для fallback режима */
-    #crosshair {
-      position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 60px; height: 60px;
-      z-index: 5; display: none; pointer-events: none;
-    }
-    #crosshair::before, #crosshair::after {
-      content: '';
-      position: absolute;
-      background: rgba(245,208,120,0.8);
-      border-radius: 2px;
-    }
-    #crosshair::before { width: 2px; height: 100%; left: 50%; top: 0; transform: translateX(-50%); }
-    #crosshair::after  { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); }
-    .crosshair-ring {
-      position: absolute; inset: 8px;
-      border: 2px solid rgba(245,208,120,0.6);
-      border-radius: 50%;
-    }
+    #errorMsg { color: #f77; margin-top: 14px; font-size: 0.9rem; display: none; text-align: center; max-width: 300px; }
   </style>
 </head>
 <body>
 
-<!-- Видео-фон (для iOS псевдо-AR) -->
-<video id="videoBackground" autoplay playsinline muted></video>
-
 <div id="overlay">
   <h1>🏛️ AR Галерея<br/>30 лет на службе</h1>
-  <p id="overlayDesc">Наведите камеру на пол. Нажмите, чтобы разместить галерею.</p>
+  <p id="desc">Наведите камеру на пол. Нажмите, чтобы разместить галерею.</p>
   <button id="startBtn">✨ Запустить AR</button>
   <p id="errorMsg"></p>
 </div>
 
 <div id="hint"></div>
 <button id="exitBtn">✕ Выйти</button>
-<button id="placeBtn">📍 Разместить галерею</button>
-<div id="modeIndicator"></div>
-<div id="crosshair"><div class="crosshair-ring"></div></div>
 
-<!-- Three.js -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<!-- WebXR Polyfill -->
 <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js"></script>
-
 <script>
-// ════════════════════════════════════════════════════════
-//  ОПРЕДЕЛЕНИЕ ПЛАТФОРМЫ
-// ════════════════════════════════════════════════════════
-const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-const IS_YANDEX = /YaBrowser/i.test(navigator.userAgent);
+new WebXRPolyfill();
 
-// Яндекс браузер на Android — пробуем WebXR как Chrome
-// Safari iOS — только fallback режим
-// Chrome Android — нативный WebXR
-
-// Инициализируем полифилл только не на iOS Safari
-// (на iOS он не поможет с AR, а может сломать камеру)
-if (!IS_IOS) {
-  try { new WebXRPolyfill(); } catch(e) {}
+// ============ Браузер-детектор и выбор режима =============
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.userAgent.includes('Macintosh') && 'ontouchend' in document);
+}
+function isSafari() {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
+function detectARMode() {
+  if (navigator.xr && navigator.xr.isSessionSupported) return 'webxr'; // Chrome, Яндекс-Браузер
+  if (isIOS() && isSafari()) return 'quicklook'; // Только QuickLook (usdz) на iOS
+  return 'fallback';
 }
 
-// ════════════════════════════════════════════════════════
-//  НАСТРОЙКИ
-// ════════════════════════════════════════════════════════
+// =========== AR Quick Look .usdz (нужно подготовить свой файл) ===========
+const QUICKLOOK_URL = 'ar/gallery.usdz';  
+
+// ============== Three.js и галерея как в вашем коде =====================
 const PHOTOS = [
   { url: 'photos/photo1.jpg',  label: '1994 год  •  Начало пути' },
   { url: 'photos/photo2.jpg',  label: '1997 год  •  Первые успехи' },
@@ -167,59 +98,35 @@ const PHOTO_W   = 0.52;
 const FRAME_T   = 0.022;
 const STAND_H   = 1.4;
 
-// ════════════════════════════════════════════════════════
-//  RENDERER
-// ════════════════════════════════════════════════════════
-const renderer = new THREE.WebGLRenderer({
-  antialias:  true,
-  alpha:      true,
-  // Важно для iOS: preserveDrawingBuffer нужен для корректной отрисовки поверх видео
-  preserveDrawingBuffer: IS_IOS,
-});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_IOS ? 1.5 : 2));
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
-
-// Безопасная установка outputEncoding (deprecated в новых версиях THREE)
-if (renderer.outputEncoding !== undefined) {
-  renderer.outputEncoding = THREE.sRGBEncoding;
-} else {
-  renderer.outputColorSpace = 'srgb';
-}
-
-renderer.toneMapping         = THREE.ACESFilmicToneMapping;
+renderer.outputEncoding    = THREE.sRGBEncoding;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.4;
-
-// Прозрачный фон чтобы видеть видео под канвасом
-renderer.setClearColor(0x000000, 0);
-renderer.setClearAlpha(0);
-
 document.body.appendChild(renderer.domElement);
 
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 30);
-camera.position.set(0, 1.6, 0); // позиция по умолчанию для fallback
 
-// ─── Освещение ───────────────────────────────────────────
+// == Свет и всё для галереи — полностью ваш сценарий ===
 const ambient = new THREE.AmbientLight(0xffffff, 2.5);
 scene.add(ambient);
-
 const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 1.5);
 scene.add(hemi);
-
 const sun = new THREE.DirectionalLight(0xffffff, 2.0);
 sun.position.set(2, 5, 2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(IS_IOS ? 512 : 1024, IS_IOS ? 512 : 1024);
-sun.shadow.camera.near   = 0.1;
-sun.shadow.camera.far    = 15;
-sun.shadow.camera.left   = sun.shadow.camera.bottom = -5;
-sun.shadow.camera.right  = sun.shadow.camera.top    =  5;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.1;
+sun.shadow.camera.far  = 15;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -5;
+sun.shadow.camera.right = sun.shadow.camera.top   =  5;
 scene.add(sun);
 
-// ─── Пол для теней ───────────────────────────────────────
 const floorMesh = new THREE.Mesh(
   new THREE.PlaneGeometry(20, 20).rotateX(-Math.PI/2),
   new THREE.ShadowMaterial({ opacity: 0.25 })
@@ -228,35 +135,20 @@ floorMesh.receiveShadow = true;
 floorMesh.visible = false;
 scene.add(floorMesh);
 
-// ════════════════════════════════════════════════════════
-//  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ════════════════════════════════════════════════════════
-
-// Безопасная установка кодировки текстуры
-function setTextureEncoding(tex) {
-  try {
-    if (tex.encoding !== undefined) {
-      tex.encoding = THREE.sRGBEncoding;
-    } else if (tex.colorSpace !== undefined) {
-      tex.colorSpace = 'srgb';
-    }
-  } catch(e) {}
-}
-
 const txLoader = new THREE.TextureLoader();
-
 function loadTextureWithRatio(url) {
   return new Promise(resolve => {
     txLoader.load(
       url,
       tex => {
-        setTextureEncoding(tex);
-        const img   = tex.image;
-        const ratio = img ? img.width / img.height : 1.0;
+        tex.encoding = THREE.sRGBEncoding;
+        const img    = tex.image;
+        const ratio  = img ? img.width / img.height : 1.0;
         resolve({ tex, ratio });
       },
       undefined,
       () => {
+        // placeholder если нет файла
         const canvas = document.createElement('canvas');
         canvas.width = 512; canvas.height = 512;
         const ctx = canvas.getContext('2d');
@@ -272,15 +164,18 @@ function loadTextureWithRatio(url) {
         ctx.font = '32px Arial';
         ctx.fillText(url.split('/').pop(), 256, 300);
         const t = new THREE.CanvasTexture(canvas);
-        setTextureEncoding(t);
+        t.encoding = THREE.sRGBEncoding;
         resolve({ tex: t, ratio: 1.0 });
       }
     );
   });
 }
-
 function makeTextTexture(text, opts = {}) {
-  const { font = 'bold 36px Arial', color = '#f5d078', w = 512, h = 72 } = opts;
+  const {
+    font  = 'bold 36px Arial',
+    color = '#f5d078',
+    w = 512, h = 72
+  } = opts;
   const c   = document.createElement('canvas');
   c.width = w; c.height = h;
   const ctx = c.getContext('2d');
@@ -293,37 +188,37 @@ function makeTextTexture(text, opts = {}) {
   ctx.shadowBlur   = 6;
   ctx.fillText(text, w/2, h/2);
   const t = new THREE.CanvasTexture(c);
-  setTextureEncoding(t);
+  t.encoding = THREE.sRGBEncoding;
   return { texture: t, aspect: w/h };
 }
-
 function makeFrame(w, h, t) {
   const group = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0xc8a84b),
-    emissive: new THREE.Color(0x3a2800),
+    color:     new THREE.Color(0xc8a84b),
+    emissive:  new THREE.Color(0x3a2800),
     emissiveIntensity: 0.15,
     roughness: 0.25,
     metalness: 0.95,
   });
+
   [
-    { sx: w+t*2, sy: t,   px: 0,       py:  h/2+t/2 },
-    { sx: w+t*2, sy: t,   px: 0,       py: -h/2-t/2 },
-    { sx: t,     sy: h,   px:-w/2-t/2, py: 0 },
-    { sx: t,     sy: h,   px: w/2+t/2, py: 0 },
+    { sx: w+t*2, sy: t,   px: 0,      py:  h/2+t/2 },
+    { sx: w+t*2, sy: t,   px: 0,      py: -h/2-t/2 },
+    { sx: t,     sy: h,   px:-w/2-t/2,py: 0 },
+    { sx: t,     sy: h,   px: w/2+t/2,py: 0 },
   ].forEach(p => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(p.sx, p.sy, t*0.8), mat);
     m.position.set(p.px, p.py, 0.001);
-    m.castShadow = m.receiveShadow = true;
+    m.castShadow    = true;
+    m.receiveShadow = true;
     group.add(m);
   });
   return group;
 }
-
 async function makePhotoStand(photoIdx, side) {
   const { tex, ratio } = await loadTextureWithRatio(PHOTOS[photoIdx].url);
   const pw = PHOTO_W;
-  const ph = pw / ratio;
+  const ph = pw / ratio; 
   const group = new THREE.Group();
 
   const backMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1, metalness: 0 });
@@ -335,15 +230,17 @@ async function makePhotoStand(photoIdx, side) {
   const photo = new THREE.Mesh(
     new THREE.PlaneGeometry(pw, ph),
     new THREE.MeshStandardMaterial({
-      map: tex, roughness: 0.6, metalness: 0.0,
-      emissive: new THREE.Color(0x111111), emissiveIntensity: 0.05,
+      map: tex,
+      roughness: 0.6,
+      metalness: 0.0,
+      emissive: new THREE.Color(0x111111),
+      emissiveIntensity: 0.05,
     })
   );
   photo.castShadow = photo.receiveShadow = true;
   group.add(photo);
 
   group.add(makeFrame(pw, ph, FRAME_T));
-
   const { texture: lblTex, aspect: lblAsp } = makeTextTexture(PHOTOS[photoIdx].label, {
     font: 'bold 34px Arial', color: '#f5d078', w: 512, h: 68
   });
@@ -355,14 +252,12 @@ async function makePhotoStand(photoIdx, side) {
   lbl.position.set(0, -ph/2 - 0.065, 0.01);
   group.add(lbl);
 
-  // Спот — на iOS уменьшаем количество теневых карт
   const spot = new THREE.SpotLight(0xfff8e7, 4.0, 3.0, Math.PI/8, 0.5, 1.2);
-  if (!IS_IOS) {
-    spot.castShadow = true;
-    spot.shadow.mapSize.set(512, 512);
-    spot.shadow.bias = -0.001;
-  }
+  spot.castShadow = true;
+  spot.shadow.mapSize.set(512, 512);
+  spot.shadow.bias = -0.001;
   spot.position.set(0, ph * 0.8, 0.5);
+
   const spotTarget = new THREE.Object3D();
   spotTarget.position.set(0, 0, 0);
   group.add(spotTarget);
@@ -372,40 +267,70 @@ async function makePhotoStand(photoIdx, side) {
   group.rotation.y = side > 0 ? -Math.PI/2 : Math.PI/2;
   return group;
 }
+const GOLD_MAT = new THREE.MeshStandardMaterial({
+  color:            new THREE.Color(0xFFD700),
+  emissive:         new THREE.Color(0x7A5500),
+  emissiveIntensity: 0.2,
+  roughness:        0.15,
+  metalness:        1.0,
+  envMapIntensity:  1.0,
+});
+function buildEnvMap() {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color(0x222222);
+  [
+    [0xfff5cc, 3,  5,  5],
+    [0xffd080, 2, -5,  3],
+    [0x88aaff, 1,  0, -5],
+  ].forEach(([c, i, x, y]) => {
+    const l = new THREE.PointLight(c, i, 20);
+    l.position.set(x, y, 3);
+    envScene.add(l);
+  });
 
+  const rt  = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04);
+  pmrem.dispose();
+  return rt.texture;
+}
 function makeGold3DText(text, size, depth, yOffset) {
   const group = new THREE.Group();
   const scale = 200;
   const cv    = document.createElement('canvas');
-  cv.width  = Math.ceil(text.length * size * scale * 0.65);
-  cv.height = Math.ceil(size * scale * 1.3);
-
+  cv.width    = Math.ceil(text.length * size * scale * 0.65);
+  cv.height   = Math.ceil(size * scale * 1.3);
+  const ctx   = cv.getContext('2d');
   const pxSize = size * scale;
-  const layers = IS_IOS ? 4 : 6; // iOS — меньше слоёв
+  ctx.font     = `900 ${pxSize}px Arial Black, Arial`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign    = 'center';
+  ctx.fillText(text, cv.width/2, cv.height/2);
 
+  const layers = 6;
   for (let i = 0; i < layers; i++) {
     const zOff  = (i / layers) * depth - depth/2;
     const alpha = i === 0 || i === layers-1 ? 1.0 : 0.85;
-
+    const shade = 1.0 - i * 0.06;
     const layerCV  = document.createElement('canvas');
     layerCV.width  = cv.width;
     layerCV.height = cv.height;
     const lCtx     = layerCV.getContext('2d');
-
     const grd = lCtx.createLinearGradient(0, 0, cv.width, cv.height);
-    grd.addColorStop(0.0, `rgba(255,245,150,${alpha})`);
-    grd.addColorStop(0.2, `rgba(255,215,  0,${alpha})`);
-    grd.addColorStop(0.4, `rgba(200,160, 30,${alpha})`);
-    grd.addColorStop(0.6, `rgba(255,220, 50,${alpha})`);
-    grd.addColorStop(0.8, `rgba(180,130, 10,${alpha})`);
-    grd.addColorStop(1.0, `rgba(255,200, 20,${alpha})`);
-
+    grd.addColorStop(0.0,  `rgba(255,245,150,${alpha})`);
+    grd.addColorStop(0.2,  `rgba(255,215,  0,${alpha})`);
+    grd.addColorStop(0.4,  `rgba(200,160, 30,${alpha})`);
+    grd.addColorStop(0.6,  `rgba(255,220, 50,${alpha})`);
+    grd.addColorStop(0.8,  `rgba(180,130, 10,${alpha})`);
+    grd.addColorStop(1.0,  `rgba(255,200, 20,${alpha})`);
     lCtx.font         = `900 ${pxSize}px Arial Black, Arial`;
     lCtx.textBaseline = 'middle';
     lCtx.textAlign    = 'center';
     lCtx.fillStyle    = grd;
     lCtx.fillText(text, cv.width/2, cv.height/2);
 
+    // Shine
     if (i === layers - 1) {
       const shine = lCtx.createLinearGradient(0, 0, cv.width*0.6, cv.height*0.6);
       shine.addColorStop(0,   'rgba(255,255,255,0.55)');
@@ -416,37 +341,44 @@ function makeGold3DText(text, size, depth, yOffset) {
       lCtx.globalCompositeOperation = 'source-over';
     }
 
-    const tex = new THREE.CanvasTexture(layerCV);
-    setTextureEncoding(tex);
+    const tex   = new THREE.CanvasTexture(layerCV);
+    tex.encoding = THREE.sRGBEncoding;
+
     const w = cv.width  / scale;
     const h = cv.height / scale;
 
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
       new THREE.MeshStandardMaterial({
-        map: tex, transparent: true, alphaTest: 0.05,
-        roughness: 0.15 + i * 0.04, metalness: 0.95,
-        emissive: new THREE.Color(0x7A5500),
-        emissiveMap: tex, emissiveIntensity: 0.25,
+        map:          tex,
+        transparent:  true,
+        alphaTest:    0.05,
+        roughness:    0.15 + i * 0.04,
+        metalness:    0.95,
+        emissive:     new THREE.Color(0x7A5500),
+        emissiveMap:  tex,
+        emissiveIntensity: 0.25,
         side: THREE.DoubleSide,
         depthWrite: i === layers - 1,
       })
     );
-    mesh.position.z = zOff;
-    mesh.castShadow = true;
+    mesh.position.z  = zOff;
+    mesh.castShadow  = true;
     group.add(mesh);
   }
-
   group.position.y = yOffset;
   return group;
 }
-
 function makePedestal() {
-  const group  = new THREE.Group();
-  const mat    = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.45, metalness: 0.5 });
+  const group = new THREE.Group();
+  const mat   = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a, roughness: 0.45, metalness: 0.5
+  });
   const topMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0xc8a84b), emissive: new THREE.Color(0x3a2800),
-    emissiveIntensity: 0.1, roughness: 0.2, metalness: 0.95
+    color:     new THREE.Color(0xc8a84b),
+    emissive:  new THREE.Color(0x3a2800),
+    emissiveIntensity: 0.1,
+    roughness: 0.2, metalness: 0.95
   });
 
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.07, 6), mat);
@@ -465,48 +397,54 @@ function makePedestal() {
 
   return group;
 }
-
-// ════════════════════════════════════════════════════════
-//  СБОРКА СЦЕНЫ
-// ════════════════════════════════════════════════════════
 const galleryRoot = new THREE.Group();
 galleryRoot.visible = false;
 scene.add(galleryRoot);
 galleryRoot.add(floorMesh);
-
+// Асинхронная расстановка фото
 async function buildGallery() {
   const promises = [];
+
   for (let i = 0; i < 10; i++) {
     const side = i % 2 === 0 ? -1 : 1;
     const idx  = Math.floor(i / 2);
+
     promises.push(
       makePhotoStand(i, side).then(stand => {
-        stand.position.set(side * SIDE_DIST, STAND_H, -(idx * SPACING));
+        stand.position.set(
+          side * SIDE_DIST,
+          STAND_H,
+          -(idx * SPACING)
+        );
         galleryRoot.add(stand);
       })
     );
   }
+
   await Promise.all(promises);
 
-  const endZ     = -(4 * SPACING + 1.3);
+  // Пьедестал
+  const endZ    = -(4 * SPACING + 1.3);
   const pedestal = makePedestal();
   pedestal.position.set(0, 0, endZ);
   galleryRoot.add(pedestal);
 
-  const text30  = makeGold3DText('30 ЛЕТ',   0.22, 0.06,  0);
+  // 3D надпись «30 ЛЕТ» — крупно
+  const text30  = makeGold3DText('30 ЛЕТ', 0.22, 0.06, 0);
+  // 3D надпись «НА СЛУЖБЕ» — поменьше
   const textSvc = makeGold3DText('НА СЛУЖБЕ', 0.10, 0.035, -0.17);
 
+  // Группа надписи — ниже, ближе к пьедесталу
   const signGroup = new THREE.Group();
   signGroup.add(text30);
   signGroup.add(textSvc);
-  signGroup.position.set(0, 0.72, endZ);
+  signGroup.position.set(0, 0.72, endZ); // ↓ ниже (было 1.35)
   galleryRoot.add(signGroup);
 
+  // Прожектор на пьедестал
   const pedesSpot = new THREE.SpotLight(0xffd080, 5.0, 4, Math.PI/7, 0.3, 1.2);
-  if (!IS_IOS) {
-    pedesSpot.castShadow = true;
-    pedesSpot.shadow.mapSize.set(512, 512);
-  }
+  pedesSpot.castShadow = true;
+  pedesSpot.shadow.mapSize.set(512, 512);
   pedesSpot.position.set(0, 2.5, endZ + 0.7);
   const pt = new THREE.Object3D();
   pt.position.set(0, 0.7, endZ);
@@ -514,28 +452,22 @@ async function buildGallery() {
   pedesSpot.target = pt;
   galleryRoot.add(pedesSpot);
 
+  // Точечный свет — золотое сияние вокруг надписи
   const glow = new THREE.PointLight(0xffd060, 2.5, 1.5);
   glow.position.set(0, 0.85, endZ);
   galleryRoot.add(glow);
 
-  // Env map — только не на iOS (тяжёлая операция)
-  if (!IS_IOS) {
-    try {
-      const pmrem    = new THREE.PMREMGenerator(renderer);
-      pmrem.compileEquirectangularShader();
-      const rt       = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04);
-      pmrem.dispose();
-      scene.environment = rt.texture;
-    } catch(e) {}
-  }
+  // Env map для золота
+  try {
+    const envMap = buildEnvMap();
+    scene.environment = envMap;
+  } catch(e) {}
 
   return signGroup;
 }
-
 let signGroup = null;
 buildGallery().then(sg => { signGroup = sg; });
 
-// ─── Маркер (для WebXR режима) ───────────────────────────
 const reticle = new THREE.Mesh(
   new THREE.RingGeometry(0.08, 0.12, 32).rotateX(-Math.PI/2),
   new THREE.MeshBasicMaterial({ color: 0xf5d078, side: THREE.DoubleSide })
@@ -543,68 +475,119 @@ const reticle = new THREE.Mesh(
 reticle.visible = false;
 scene.add(reticle);
 
-// ════════════════════════════════════════════════════════
-//  DOM
-// ════════════════════════════════════════════════════════
-const overlay        = document.getElementById('overlay');
-const overlayDesc    = document.getElementById('overlayDesc');
-const startBtn       = document.getElementById('startBtn');
-const errorMsg       = document.getElementById('errorMsg');
-const hint           = document.getElementById('hint');
-const exitBtn        = document.getElementById('exitBtn');
-const placeBtn       = document.getElementById('placeBtn');
-const videoBg        = document.getElementById('videoBackground');
-const modeIndicator  = document.getElementById('modeIndicator');
-const crosshairEl    = document.getElementById('crosshair');
+// ========== DOM / XR / Fallback-логика =============
+const overlay  = document.getElementById('overlay');
+const desc     = document.getElementById('desc');
+const startBtn = document.getElementById('startBtn');
+const errorMsg = document.getElementById('errorMsg');
+const hint     = document.getElementById('hint');
+const exitBtn  = document.getElementById('exitBtn');
 
 let xrSession  = null;
 let hitTestSrc = null;
 let placed     = false;
 const clock    = new THREE.Clock();
 
-// ════════════════════════════════════════════════════════
-//  РЕЖИМ 1: WebXR (Chrome Android / Yandex Android)
-// ════════════════════════════════════════════════════════
-async function startWebXR() {
-  renderer.xr.setReferenceSpaceType('local');
-  
-  xrSession = await navigator.xr.requestSession('immersive-ar', {
-    requiredFeatures: ['hit-test'],
-    optionalFeatures: ['dom-overlay', 'local-floor'],
-    domOverlay: { root: document.body }
-  });
-
-  await renderer.xr.setSession(xrSession);
-
-  overlay.style.display = 'none';
-  hint.style.display    = 'block';
-  hint.textContent      = '📍 Наведите на пол и нажмите — разместить галерею';
-  exitBtn.style.display = 'block';
-  modeIndicator.textContent = IS_YANDEX ? '🌐 Яндекс AR' : '🌐 WebXR AR';
-  modeIndicator.style.display = 'block';
-
-  const viewerSpace = await xrSession.requestReferenceSpace('viewer');
-  hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
-
-  renderer.domElement.addEventListener('click', onTapWebXR);
-  xrSession.addEventListener('end', onEndWebXR);
-  renderer.setAnimationLoop(onFrameWebXR);
+function showError(m) {
+  errorMsg.textContent  = m;
+  errorMsg.style.display = 'block';
 }
 
-function onTapWebXR() {
+// Платформозависимая кнопка запуска
+function initARButton() {
+  const mode = detectARMode();
+
+  if (mode === 'webxr') {
+    startBtn.textContent = '✨ Запустить AR';
+    desc.textContent = 'Наведите камеру на пол. Нажмите, чтобы разместить галерею.';
+    startBtn.disabled = false;
+    startBtn.onclick     = startAR;
+  } else if (mode === 'quicklook') {
+    startBtn.textContent = '👁‍🗨 Открыть в AR (iOS)';
+    desc.textContent = 'AR-режим работает через Quick Look на iOS.';
+    // <a rel="ar"> for QuickLook
+    startBtn.onclick = () => {
+      // Создаём скрытую ссылку для Quick Look
+      const a = document.createElement('a');
+      a.rel   = 'ar';
+      a.href  = QUICKLOOK_URL;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 1200);
+    };
+    startBtn.disabled = false;
+    errorMsg.style.display = 'none';
+  } else {
+    startBtn.textContent = '👁 Посмотреть 3D-галерею';
+    desc.textContent = 'Ваш браузер не поддерживает AR — доступен только обычный 3D-просмотр галереи.';
+    startBtn.onclick = startFallback3D;
+    startBtn.disabled = false;
+    errorMsg.style.display = 'none';
+  }
+}
+
+// Fallback — обычная 3D-сцена без AR
+function startFallback3D() {
+  overlay.style.display = 'none';
+  exitBtn.style.display = 'block';
+  galleryRoot.visible  = true;
+  floorMesh.visible    = true;
+  renderer.setAnimationLoop(onFrame);
+}
+
+// ======= Исходный WebXR AR логика ==========
+async function startAR() {
+  startBtn.disabled = true;
+  if (!navigator.xr) {
+    showError('WebXR не поддерживается. Нужен Chrome или Яндекс.Браузер на Android.');
+    startBtn.disabled = false; return;
+  }
+  const ok = await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+  if (!ok) {
+    showError('AR не поддерживается на этом устройстве.');
+    startBtn.disabled = false; return;
+  }
+
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: { root: document.body }
+    });
+
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(xrSession);
+
+    overlay.style.display = 'none';
+    hint.style.display    = 'block';
+    hint.textContent      = '📍 Наведите на пол и нажмите — разместить галерею';
+    exitBtn.style.display = 'block';
+
+    const viewerSpace = await xrSession.requestReferenceSpace('viewer');
+    hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
+
+    renderer.domElement.addEventListener('click', onTap);
+    xrSession.addEventListener('end', onEnd);
+    renderer.setAnimationLoop(onFrame);
+
+  } catch(e) {
+    showError('Ошибка: ' + e.message);
+    startBtn.disabled = false;
+  }
+}
+function onTap() {
   if (!reticle.visible || placed) return;
   placed = true;
   galleryRoot.position.copy(reticle.position);
   floorMesh.position.copy(reticle.position);
-  floorMesh.visible   = true;
-  galleryRoot.visible = true;
-  reticle.visible     = false;
-
+  floorMesh.visible    = true;
+  galleryRoot.visible  = true;
+  reticle.visible      = false;
   hint.textContent = '🚶 Пройдитесь вдоль галереи!';
   setTimeout(() => { hint.style.display = 'none'; }, 5000);
 }
-
-function onFrameWebXR(time, frame) {
+function onFrame(time, frame) {
   if (!frame) return;
   const refSpace = renderer.xr.getReferenceSpace();
 
@@ -620,389 +603,51 @@ function onFrameWebXR(time, frame) {
     }
   }
 
-  animateSign(clock.getElapsedTime());
+  if (placed && signGroup) {
+    const t = clock.getElapsedTime();
+    signGroup.position.y = 0.72 + Math.sin(t * 1.1) * 0.04;
+    signGroup.rotation.y = Math.sin(t * 0.35) * 0.12;
+    galleryRoot.children.forEach(c => {
+      if (c.isPointLight) {
+        c.intensity = 2.2 + Math.sin(t * 2.2) * 0.8;
+      }
+    });
+  }
   renderer.render(scene, camera);
 }
-
-function onEndWebXR() {
+function onEnd() {
   renderer.setAnimationLoop(null);
   if (hitTestSrc) { hitTestSrc.cancel(); hitTestSrc = null; }
   placed = false;
   galleryRoot.visible = false;
   reticle.visible     = false;
   floorMesh.visible   = false;
-  renderer.domElement.removeEventListener('click', onTapWebXR);
-  overlay.style.display      = '';
-  hint.style.display         = 'none';
-  exitBtn.style.display      = 'none';
-  modeIndicator.style.display = 'none';
-  startBtn.disabled          = false;
+  renderer.domElement.removeEventListener('click', onTap);
+  overlay.style.display   = '';
+  hint.style.display      = 'none';
+  exitBtn.style.display   = 'none';
+  startBtn.disabled       = false;
   clock.getDelta();
 }
-
-// ════════════════════════════════════════════════════════
-//  РЕЖИМ 2: Fallback AR (iOS Safari / любой без WebXR)
-//  Камера через getUserMedia + DeviceOrientation для поворота
-// ════════════════════════════════════════════════════════
-
-// Состояние гироскопа
-const gyroState = {
-  active:  false,
-  alpha: 0, beta: 90, gamma: 0,  // euler углы
-  // Опорные значения (при старте)
-  baseAlpha: 0, baseBeta: 90, baseGamma: 0,
-  calibrated: false,
-};
-
-// Сглаживание (low-pass filter)
-const SMOOTH = 0.12;
-const smoothed = { alpha: 0, beta: 90, gamma: 0 };
-
-// Позиция камеры в fallback (симуляция движения по сцене)
-const fallbackCamPos = new THREE.Vector3(0, 1.6, 3.5);
-
-// Стрим видео
-let videoStream = null;
-
-async function startFallbackAR() {
-  // 1. Запрашиваем камеру
-  try {
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'environment',
-        width:  { ideal: window.innerWidth },
-        height: { ideal: window.innerHeight },
-      },
-      audio: false
-    });
-    videoBg.srcObject = videoStream;
-    videoBg.style.display = 'block';
-
-    // Ждём метаданные видео
-    await new Promise(resolve => {
-      videoBg.onloadedmetadata = resolve;
-      setTimeout(resolve, 2000); // таймаут на случай задержки
-    });
-
-    await videoBg.play();
-  } catch(e) {
-    showError('Нет доступа к камере: ' + e.message);
-    startBtn.disabled = false;
-    return;
-  }
-
-  // 2. Запрашиваем разрешение на гироскоп (iOS 13+)
-  await requestGyroPermission();
-
-  // 3. Показываем интерфейс
-  overlay.style.display      = 'none';
-  crosshairEl.style.display  = 'block';
-  placeBtn.style.display     = 'block';
-  hint.style.display         = 'block';
-  hint.textContent           = '🎯 Нацельтесь на пол и нажмите «Разместить»';
-  exitBtn.style.display      = 'block';
-  modeIndicator.textContent  = IS_IOS ? '📱 iOS AR (камера + гироскоп)' : '📷 Камера AR';
-  modeIndicator.style.display = 'block';
-
-  // 4. Размещаем галерею перед камерой по умолчанию
-  //    (пользователь подтвердит кнопкой)
-  camera.position.copy(fallbackCamPos);
-  camera.rotation.set(0, Math.PI, 0);
-
-  // 5. Запускаем рендер-цикл
-  renderer.setAnimationLoop(onFrameFallback);
-
-  // 6. Кнопка размещения
-  placeBtn.addEventListener('click', onPlaceFallback);
-  exitBtn.addEventListener('click', stopFallbackAR);
-}
-
-async function requestGyroPermission() {
-  // iOS 13+ требует явного разрешения
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      const perm = await DeviceOrientationEvent.requestPermission();
-      if (perm === 'granted') {
-        attachGyro();
-      } else {
-        hint.textContent = '⚠️ Гироскоп недоступен — поворот ограничен';
-      }
-    } catch(e) {
-      // Fallback без гироскопа
-    }
-  } else {
-    // Android / старые iOS — разрешение не нужно
-    attachGyro();
-  }
-}
-
-function attachGyro() {
-  gyroState.active = true;
-  window.addEventListener('deviceorientation', onDeviceOrientation, true);
-}
-
-function onDeviceOrientation(e) {
-  if (e.alpha === null) return;
-
-  // Первая калибровка — запоминаем стартовые углы
-  if (!gyroState.calibrated) {
-    gyroState.baseAlpha = e.alpha;
-    gyroState.baseBeta  = e.beta;
-    gyroState.baseGamma = e.gamma;
-    gyroState.calibrated = true;
-  }
-
-  gyroState.alpha = e.alpha;
-  gyroState.beta  = e.beta;
-  gyroState.gamma = e.gamma;
-}
-
-// Применяем ориентацию гироскопа к камере
-// Используем THREE.Euler с правильным порядком для мобильных устройств
-const _euler   = new THREE.Euler();
-const _quat    = new THREE.Quaternion();
-// Коррекция — поворот системы координат устройства в WebGL
-const _screenQ = new THREE.Quaternion();
-const _worldQ  = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
-
-function applyGyroToCamera() {
-  if (!gyroState.active || !gyroState.calibrated) return;
-
-  // Сглаживаем углы (low-pass)
-  smoothed.alpha += (gyroState.alpha - smoothed.alpha) * SMOOTH;
-  smoothed.beta  += (gyroState.beta  - smoothed.beta)  * SMOOTH;
-  smoothed.gamma += (gyroState.gamma - smoothed.gamma) * SMOOTH;
-
-  // Конвертируем DeviceOrientation → Three.js quaternion
-  // Стандартная формула для портретной ориентации
-  _euler.set(
-    THREE.MathUtils.degToRad(smoothed.beta),
-    THREE.MathUtils.degToRad(smoothed.alpha),
-    THREE.MathUtils.degToRad(-smoothed.gamma),
-    'YXZ'
-  );
-
-  _quat.setFromEuler(_euler);
-
-  // Применяем мировую поправку
-  _quat.premultiply(_worldQ);
-
-  // Поправка на ориентацию экрана
-  const orient = (window.screen.orientation && window.screen.orientation.angle)
-               || window.orientation
-               || 0;
-  _screenQ.setFromAxisAngle(
-    new THREE.Vector3(0, 0, 1),
-    -THREE.MathUtils.degToRad(orient)
-  );
-  _quat.multiply(_screenQ);
-
-  camera.quaternion.copy(_quat);
-}
-
-// Тач-управление (свайп для перемещения по галерее)
-const touch = { startX: 0, startZ: 0, lastX: 0 };
-let touchActive = false;
-
-renderer.domElement.addEventListener('touchstart', e => {
-  if (!placed) return;
-  touch.startX = e.touches[0].clientX;
-  touch.lastX  = touch.startX;
-  touch.startZ = galleryRoot.position.z;
-  touchActive  = true;
-}, { passive: true });
-
-renderer.domElement.addEventListener('touchmove', e => {
-  if (!placed || !touchActive) return;
-  const dx = (e.touches[0].clientX - touch.lastX) * 0.005;
-  // Смещаем галерею по оси Z (движение по коридору)
-  galleryRoot.position.z = THREE.MathUtils.clamp(
-    galleryRoot.position.z + dx,
-    -5, 5
-  );
-  touch.lastX = e.touches[0].clientX;
-}, { passive: true });
-
-renderer.domElement.addEventListener('touchend', () => {
-  touchActive = false;
-}, { passive: true });
-
-function onPlaceFallback() {
-  if (placed) return;
-  placed = true;
-
-  // Размещаем галерею в 3 метрах перед камерой на уровне пола
-  const dir = new THREE.Vector3(0, 0, -1);
-  dir.applyQuaternion(camera.quaternion);
-  dir.y = 0;
-  dir.normalize();
-
-  galleryRoot.position.set(
-    camera.position.x + dir.x * 3.0,
-    0,  // на уровне пола
-    camera.position.z + dir.z * 3.0
-  );
-
-  // Поворачиваем галерею к камере
-  galleryRoot.rotation.y = Math.atan2(
-    camera.position.x - galleryRoot.position.x,
-    camera.position.z - galleryRoot.position.z
-  );
-
-  floorMesh.position.copy(galleryRoot.position);
-  floorMesh.visible   = true;
-  galleryRoot.visible = true;
-
-  placeBtn.style.display    = 'none';
-  crosshairEl.style.display = 'none';
-
-  hint.textContent = '🚶 Поворачивайте телефон, свайп — движение по галерее';
-  setTimeout(() => { hint.style.display = 'none'; }, 6000);
-}
-
-function onFrameFallback() {
-  applyGyroToCamera();
-  animateSign(clock.getElapsedTime());
-  // Прозрачный фон — видно видео под канвасом
-  renderer.setClearColor(0x000000, 0);
-  renderer.render(scene, camera);
-}
-
-function stopFallbackAR() {
-  renderer.setAnimationLoop(null);
-
-  // Останавливаем видеопоток
-  if (videoStream) {
-    videoStream.getTracks().forEach(t => t.stop());
-    videoStream = null;
-  }
-  videoBg.srcObject    = null;
-  videoBg.style.display = 'none';
-
-  if (gyroState.active) {
-    window.removeEventListener('deviceorientation', onDeviceOrientation, true);
-    gyroState.active     = false;
-    gyroState.calibrated = false;
-  }
-
-  placed = false;
-  galleryRoot.visible   = false;
-  floorMesh.visible     = false;
-  placeBtn.style.display     = 'none';
-  crosshairEl.style.display  = 'none';
-  hint.style.display         = 'none';
-  exitBtn.style.display      = 'none';
-  modeIndicator.style.display = 'none';
-  overlay.style.display      = '';
-  startBtn.disabled          = false;
-
-  placeBtn.removeEventListener('click', onPlaceFallback);
-  exitBtn.removeEventListener('click', stopFallbackAR);
-}
-
-// ════════════════════════════════════════════════════════
-//  АНИМАЦИЯ ПОДПИСИ (общая для обоих режимов)
-// ════════════════════════════════════════════════════════
-function animateSign(t) {
-  if (!signGroup || !placed) return;
-
-  signGroup.position.y = 0.72 + Math.sin(t * 1.1) * 0.04;
-  signGroup.rotation.y = Math.sin(t * 0.35) * 0.12;
-
-  galleryRoot.children.forEach(c => {
-    if (c.isPointLight) {
-      c.intensity = 2.2 + Math.sin(t * 2.2) * 0.8;
-    }
-  });
-}
-
-// ════════════════════════════════════════════════════════
-//  ГЛАВНАЯ ТОЧКА ВХОДА — определяем режим и запускаем
-// ════════════════════════════════════════════════════════
-async function startAR() {
-  startBtn.disabled = true;
-  errorMsg.style.display = 'none';
-
-  // Проверяем поддержку WebXR
-  const hasWebXR = navigator.xr
-    ? await navigator.xr.isSessionSupported('immersive-ar').catch(() => false)
-    : false;
-
-  if (hasWebXR) {
-    // ── Chrome, Яндекс на Android — нативный WebXR ──
-    try {
-      await startWebXR();
-    } catch(e) {
-      // WebXR есть, но сессия не открылась — пробуем fallback
-      console.warn('WebXR failed, trying fallback:', e.message);
-      await startFallbackAR();
-    }
-  } else {
-    // ── iOS Safari или браузер без WebXR — fallback ──
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showError('Камера недоступна в этом браузере. Попробуйте Safari или Chrome.');
-      startBtn.disabled = false;
-      return;
-    }
-    await startFallbackAR();
-  }
-}
-
-// ════════════════════════════════════════════════════════
-//  ОБНОВЛЕНИЕ UI ПОД ПЛАТФОРМУ
-// ════════════════════════════════════════════════════════
-(function updateUIForPlatform() {
-  if (IS_IOS) {
-    overlayDesc.textContent =
-      'Разрешите доступ к камере и гироскопу. ' +
-      'Направьте телефон на пол и нажмите «Разместить».';
-    startBtn.textContent = '📱 Запустить AR (iOS)';
-  } else if (IS_YANDEX) {
-    overlayDesc.textContent =
-      'Наведите камеру на пол. Нажмите, чтобы разместить галерею.';
-    startBtn.textContent = '✨ Запустить AR';
-  }
-})();
-
-// ════════════════════════════════════════════════════════
-//  СОБЫТИЯ
-// ════════════════════════════════════════════════════════
-startBtn.addEventListener('click', startAR);
-
-// exitBtn в WebXR режиме
 exitBtn.addEventListener('click', () => {
-  if (xrSession) {
-    xrSession.end();
-  }
-  // fallback — обрабатывается внутри stopFallbackAR
+  if (xrSession && xrSession.end) xrSession.end();
+  overlay.style.display = '';
+  galleryRoot.visible = false;
+  floorMesh.visible = false;
+  renderer.setAnimationLoop(null);
+  startBtn.disabled = false;
 });
 
-function showError(m) {
-  errorMsg.textContent   = m;
-  errorMsg.style.display = 'block';
-}
-
+// ==== Адаптация под resize ====
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ════════════════════════════════════════════════════════
-//  YANDEX: Принудительно включаем флаг WebXR если нужно
-//  (Яндекс браузер может требовать явного разрешения)
-// ════════════════════════════════════════════════════════
-if (IS_YANDEX && !navigator.xr) {
-  // Яндекс иногда не открывает navigator.xr без флага
-  // Показываем подсказку
-  const yandexHint = document.createElement('p');
-  yandexHint.style.cssText =
-    'font-size:0.78rem;color:#fa0;margin-top:10px;text-align:center;max-width:300px;';
-  yandexHint.textContent =
-    '⚙️ Яндекс: включите WebXR в настройках → browser://flags → #webxr';
-  overlay.appendChild(yandexHint);
-}
+// ======= ИНИЦИАЛИЗАЦИЯ =======
+window.addEventListener('DOMContentLoaded', initARButton);
+
 </script>
 </body>
 </html>
