@@ -1,291 +1,506 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AR Куб</title>
+  <title>AR Галерея — 30 лет на службе</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; font-family: Arial, sans-serif; }
 
     #overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.85);
-      color: white;
-      z-index: 10;
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.9);
+      color: white; z-index: 10;
     }
-
-    #overlay h1 { font-size: 1.8rem; margin-bottom: 12px; }
-    #overlay p  { font-size: 1rem; color: #aaa; margin-bottom: 30px; text-align: center; max-width: 300px; }
+    #overlay h1 { font-size: 1.8rem; margin-bottom: 8px; text-align: center; }
+    #overlay p  { font-size: 0.95rem; color: #aaa; margin-bottom: 24px; text-align: center; max-width: 320px; line-height: 1.5; }
 
     #startBtn {
-      padding: 14px 36px;
-      font-size: 1.1rem;
-      background: #4f8ef7;
-      color: white;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      transition: background 0.2s;
+      padding: 14px 40px; font-size: 1.1rem;
+      background: linear-gradient(135deg, #c8a84b, #f5d078);
+      color: #1a1a1a; border: none; border-radius: 50px;
+      cursor: pointer; font-weight: bold;
+      box-shadow: 0 4px 20px rgba(200,168,75,0.4);
     }
-    #startBtn:hover { background: #2f6ed5; }
-    #startBtn:disabled { background: #555; cursor: default; }
+    #startBtn:disabled { background: #555; color: #999; box-shadow: none; cursor: default; }
 
     #hint {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.6);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      z-index: 5;
-      display: none;
-      text-align: center;
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.65); color: white;
+      padding: 10px 22px; border-radius: 20px;
+      font-size: 0.9rem; z-index: 5; display: none; text-align: center;
+      border: 1px solid rgba(255,255,255,0.15);
     }
-
     #exitBtn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: rgba(0,0,0,0.5);
-      color: white;
+      position: fixed; top: 20px; right: 20px;
+      background: rgba(0,0,0,0.5); color: white;
       border: 1px solid rgba(255,255,255,0.3);
-      padding: 8px 18px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      z-index: 5;
-      display: none;
+      padding: 8px 18px; border-radius: 20px;
+      cursor: pointer; font-size: 0.9rem; z-index: 5; display: none;
     }
-
-    canvas { display: block; }
+    #errorMsg { color: #f77; margin-top: 14px; font-size: 0.9rem; display: none; text-align: center; max-width: 300px; }
   </style>
 </head>
 <body>
 
 <div id="overlay">
-  <h1>🟦 AR Куб</h1>
-  <p>Наведите камеру на пол и нажмите кнопку, чтобы разместить куб</p>
-  <button id="startBtn">Запустить AR</button>
-  <p id="errorMsg" style="color:#f77; margin-top:16px; display:none;"></p>
+  <h1>🏛️ AR Галерея<br/>30 лет на службе</h1>
+  <p>Наведите камеру на пол. Нажмите, чтобы разместить галерею. Пройдитесь вдоль стендов!</p>
+  <button id="startBtn">✨ Запустить AR</button>
+  <p id="errorMsg"></p>
 </div>
 
-<div id="hint">📍 Наведите на пол и нажмите, чтобы поставить куб</div>
+<div id="hint"></div>
 <button id="exitBtn">✕ Выйти</button>
 
-<!-- Three.js -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<!-- WebXR Polyfill (для браузеров без нативного WebXR) -->
 <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js"></script>
 
 <script>
-  // ─── Polyfill (если нужен) ───────────────────────────────────────
-  const polyfill = new WebXRPolyfill();
+new WebXRPolyfill();
 
-  // ─── DOM ─────────────────────────────────────────────────────────
-  const overlay   = document.getElementById('overlay');
-  const startBtn  = document.getElementById('startBtn');
-  const errorMsg  = document.getElementById('errorMsg');
-  const hint      = document.getElementById('hint');
-  const exitBtn   = document.getElementById('exitBtn');
+// ════════════════════════════════════════════════════════
+//  НАСТРОЙКИ — меняйте под себя
+// ════════════════════════════════════════════════════════
+const PHOTOS = [
+  { url: 'photos/photo1.jpg',  label: '1994 год  •  Начало пути' },
+  { url: 'photos/photo2.jpg',  label: '1997 год  •  Первые успехи' },
+  { url: 'photos/photo3.jpg',  label: '2000 год  •  Новый век' },
+  { url: 'photos/photo4.jpg',  label: '2005 год  •  ЛПП' },
+  { url: 'photos/photo5.jpg',  label: '2008 год  •  ЛПП' },
+  { url: 'photos/photo6.jpg',  label: '2011 год  •  ЛПП' },
+  { url: 'photos/photo7.jpg',  label: '2014 год  •  ЛПП' },
+  { url: 'photos/photo8.jpg',  label: '2018 год  •  ЛПП' },
+  { url: 'photos/photo9.jpg',  label: '2021 год  •  ЛПП' },
+  { url: 'photos/photo10.jpg', label: '2024 год  •  30 лет!' },
+];
 
-  // ─── Three.js ────────────────────────────────────────────────────
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  renderer.shadowMap.enabled = true;
-  document.body.appendChild(renderer.domElement);
+// Галерея: расстояние между стендами вдоль оси Z
+const SPACING   = 0.9;   // метры между фото
+const SIDE_DIST = 0.8;   // расстояние от центра до ряда фото
+const PHOTO_W   = 0.5;   // ширина фото
+const PHOTO_H   = 0.38;  // высота фото
+const FRAME_T   = 0.025; // толщина рамки
+const STAND_H   = 0.9;   // высота центра фото от пола
+// ════════════════════════════════════════════════════════
 
-  const scene  = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 50);
+// ─── Renderer ────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+renderer.shadowMap.enabled  = true;
+renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+renderer.physicallyCorrectLights = true;
+document.body.appendChild(renderer.domElement);
 
-  // Освещение
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-  scene.add(ambientLight);
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 30);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  dirLight.position.set(1, 3, 2);
-  dirLight.castShadow = true;
-  scene.add(dirLight);
+// ─── Текстуры ─────────────────────────────────────────────
+const loader    = new THREE.TextureLoader();
+const textures  = PHOTOS.map(p => {
+  const t = loader.load(p.url, undefined, undefined, () => {
+    // если фото не загрузилось — используем placeholder
+  });
+  t.encoding = THREE.sRGBEncoding;
+  return t;
+});
 
-  // ─── Куб ─────────────────────────────────────────────────────────
-  const cubeSize = 0.3; // 30 см
+// ─── Материалы ────────────────────────────────────────────
+const floorMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+const floorGeo = new THREE.PlaneGeometry(20, 20);
+floorGeo.rotateX(-Math.PI / 2);
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.receiveShadow = true;
+floor.visible = false; // покажем после размещения
+scene.add(floor);
 
-  const cubeMat = new THREE.MeshStandardMaterial({
-    color: 0x4f8ef7,
-    roughness: 0.4,
-    metalness: 0.2,
+// ─── Освещение ────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+scene.add(ambient);
+
+// Общий мягкий свет
+const hemi = new THREE.HemisphereLight(0xfff8e7, 0x222222, 0.5);
+scene.add(hemi);
+
+// ─── Canvas-текст (подписи и 3D надпись) ─────────────────
+function makeTextTexture(text, opts = {}) {
+  const {
+    font      = 'bold 36px Arial',
+    color     = '#ffffff',
+    bg        = 'transparent',
+    w         = 512,
+    h         = 80,
+    align     = 'center',
+  } = opts;
+
+  const c   = document.createElement('canvas');
+  c.width   = w; c.height = h;
+  const ctx = c.getContext('2d');
+
+  if (bg !== 'transparent') {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  ctx.font         = font;
+  ctx.fillStyle    = color;
+  ctx.textAlign    = align;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, w/2, h/2);
+
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  return { texture: t, aspect: w/h };
+}
+
+// ─── Подпись под фото ─────────────────────────────────────
+function makeLabel(text) {
+  const { texture, aspect } = makeTextTexture(text, {
+    font: 'bold 32px Arial', color: '#f5d078',
+    bg: 'transparent', w: 512, h: 64
+  });
+  const labelH = 0.07;
+  const geo = new THREE.PlaneGeometry(labelH * aspect, labelH);
+  const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false });
+  return new THREE.Mesh(geo, mat);
+}
+
+// ─── Рамка для фото ───────────────────────────────────────
+function makeFrame(w, h, t, color = 0x8B6914) {
+  const group = new THREE.Group();
+  const mat   = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.7 });
+
+  const pieces = [
+    // top
+    { sx: w + t*2, sy: t,       sz: t, px: 0,        py:  h/2 + t/2, pz: 0 },
+    // bottom
+    { sx: w + t*2, sy: t,       sz: t, px: 0,        py: -h/2 - t/2, pz: 0 },
+    // left
+    { sx: t,       sy: h,       sz: t, px: -w/2-t/2, py: 0,          pz: 0 },
+    // right
+    { sx: t,       sy: h,       sz: t, px:  w/2+t/2, py: 0,          pz: 0 },
+  ];
+
+  pieces.forEach(p => {
+    const geo  = new THREE.BoxGeometry(p.sx, p.sy, p.sz);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(p.px, p.py, p.pz);
+    mesh.castShadow    = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
   });
 
-  // Рёбра куба (wireframe поверх)
-  const cubeGeo   = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-  const cube      = new THREE.Mesh(cubeGeo, cubeMat);
-  cube.castShadow = true;
+  return group;
+}
 
-  const edgesGeo  = new THREE.EdgesGeometry(cubeGeo);
-  const edgesMat  = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 });
-  const edges     = new THREE.LineSegments(edgesGeo, edgesMat);
-  cube.add(edges);
+// ─── Один стенд с фото ────────────────────────────────────
+function makePhotoStand(texture, labelText, side) {
+  // side: +1 = правая, -1 = левая
+  const group = new THREE.Group();
 
-  // Группа: куб стоит на полу (смещён вверх на половину размера)
-  const cubeGroup = new THREE.Group();
-  cube.position.y = cubeSize / 2;
-  cubeGroup.add(cube);
-  cubeGroup.visible = false;
-  scene.add(cubeGroup);
+  // Фото-плоскость
+  const photoGeo = new THREE.PlaneGeometry(PHOTO_W, PHOTO_H);
+  const photoMat = new THREE.MeshStandardMaterial({
+    map: texture,
+    roughness: 0.8, metalness: 0.0,
+    side: THREE.FrontSide
+  });
+  const photo = new THREE.Mesh(photoGeo, photoMat);
+  photo.castShadow    = true;
+  photo.receiveShadow = true;
+  group.add(photo);
 
-  // ─── Маркер (кольцо на полу) ─────────────────────────────────────
-  const reticleGeo = new THREE.RingGeometry(0.08, 0.12, 32);
-  reticleGeo.rotateX(-Math.PI / 2);
-  const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-  const reticle    = new THREE.Mesh(reticleGeo, reticleMat);
+  // Рамка
+  const frame = makeFrame(PHOTO_W, PHOTO_H, FRAME_T);
+  group.add(frame);
+
+  // Подпись
+  const label = makeLabel(labelText);
+  label.position.set(0, -PHOTO_H/2 - 0.07, 0.01);
+  group.add(label);
+
+  // Спот-свет над фото
+  const spot = new THREE.SpotLight(0xfff5cc, 1.5, 2.5, Math.PI/7, 0.4, 1.5);
+  spot.castShadow = true;
+  spot.shadow.mapSize.set(512, 512);
+  spot.shadow.bias = -0.001;
+  spot.position.set(0, 0.9, 0.3); // над фото
+  group.add(spot);
+
+  const spotTarget = new THREE.Object3D();
+  spotTarget.position.set(0, 0, 0);
+  group.add(spotTarget);
+  spot.target = spotTarget;
+
+  // Разворот: левый ряд смотрит вправо (+X), правый — влево (−X)
+  group.rotation.y = side > 0 ? -Math.PI/2 : Math.PI/2;
+
+  return group;
+}
+
+// ─── Пьедестал ────────────────────────────────────────────
+function makePedestal() {
+  const group = new THREE.Group();
+
+  // Основание
+  const baseGeo = new THREE.CylinderGeometry(0.25, 0.30, 0.08, 6);
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.5, metalness: 0.3 });
+  const base    = new THREE.Mesh(baseGeo, baseMat);
+  base.castShadow    = true;
+  base.receiveShadow = true;
+  group.add(base);
+
+  // Колонна
+  const colGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.5, 6);
+  const col    = new THREE.Mesh(colGeo, baseMat);
+  col.position.y = 0.29;
+  col.castShadow    = true;
+  col.receiveShadow = true;
+  group.add(col);
+
+  // Верхняя плита
+  const topGeo = new THREE.CylinderGeometry(0.22, 0.12, 0.05, 6);
+  const topMat = new THREE.MeshStandardMaterial({ color: 0xc8a84b, roughness: 0.2, metalness: 0.8 });
+  const top    = new THREE.Mesh(topGeo, topMat);
+  top.position.y = 0.565;
+  top.castShadow    = true;
+  top.receiveShadow = true;
+  group.add(top);
+
+  return group;
+}
+
+// ─── Левитирующая надпись ────────────────────────────────
+function makeFloatingText() {
+  const group = new THREE.Group();
+
+  // "30 лет" — большой
+  const { texture: t1, aspect: a1 } = makeTextTexture('30 ЛЕТ', {
+    font: 'bold 96px Arial', color: '#f5d078',
+    w: 512, h: 120
+  });
+  const big = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.55 * a1/4, 0.55),
+    new THREE.MeshStandardMaterial({
+      map: t1, transparent: true,
+      emissive: new THREE.Color(0xc8a84b),
+      emissiveMap: t1,
+      emissiveIntensity: 0.6,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  big.castShadow = false;
+  group.add(big);
+
+  // "НА СЛУЖБЕ" — маленький
+  const { texture: t2, aspect: a2 } = makeTextTexture('НА СЛУЖБЕ', {
+    font: 'bold 52px Arial', color: '#e8c060',
+    w: 512, h: 80
+  });
+  const small = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.35 * a2/6.4, 0.35),
+    new THREE.MeshStandardMaterial({
+      map: t2, transparent: true,
+      emissive: new THREE.Color(0xa07830),
+      emissiveMap: t2,
+      emissiveIntensity: 0.5,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  small.position.y = -0.22;
+  group.add(small);
+
+  // Точечный свет — золотое сияние вокруг надписи
+  const glow = new THREE.PointLight(0xf5d078, 2.0, 1.2);
+  glow.position.set(0, 0.1, 0.1);
+  group.add(glow);
+
+  return group;
+}
+
+// ════════════════════════════════════════════════════════
+//  СБОРКА ВСЕЙ СЦЕНЫ
+// ════════════════════════════════════════════════════════
+const galleryRoot = new THREE.Group();
+galleryRoot.visible = false;
+scene.add(galleryRoot);
+
+// Пол (тени)
+galleryRoot.add(floor);
+
+// Расставляем 10 фото: 5 слева, 5 справа
+for (let i = 0; i < 10; i++) {
+  const side  = i % 2 === 0 ? -1 : 1;  // чётные — лево, нечётные — право
+  const idx   = Math.floor(i / 2);      // 0..4 вдоль оси Z
+
+  const stand = makePhotoStand(textures[i], PHOTOS[i].label, side);
+  stand.position.set(
+    side * SIDE_DIST,                    // X: влево/вправо
+    STAND_H,                             // Y: высота центра фото
+    -(idx * SPACING)                     // Z: вглубь галереи
+  );
+  galleryRoot.add(stand);
+}
+
+// Пьедестал в конце
+const pedestal = makePedestal();
+pedestal.position.set(0, 0, -(4 * SPACING + 1.2));
+galleryRoot.add(pedestal);
+
+// Левитирующая надпись над пьедесталом
+const floatingText = makeFloatingText();
+floatingText.position.set(0, 1.35, -(4 * SPACING + 1.2));
+galleryRoot.add(floatingText);
+
+// Прожектор на пьедестал
+const pedesSpot = new THREE.SpotLight(0xf5d078, 3.0, 3, Math.PI/8, 0.3, 1);
+pedesSpot.position.set(0, 2.5, -(4 * SPACING + 0.5));
+pedesSpot.castShadow = true;
+pedesSpot.shadow.mapSize.set(512, 512);
+const pedesTarget = new THREE.Object3D();
+pedesTarget.position.set(0, 0.6, -(4 * SPACING + 1.2));
+scene.add(pedesTarget);
+pedesSpot.target = pedesTarget;
+galleryRoot.add(pedesSpot);
+
+// ════════════════════════════════════════════════════════
+//  МАРКЕР HIT-TEST
+// ════════════════════════════════════════════════════════
+const reticleGeo = new THREE.RingGeometry(0.08, 0.12, 32);
+reticleGeo.rotateX(-Math.PI/2);
+const reticle = new THREE.Mesh(
+  reticleGeo,
+  new THREE.MeshBasicMaterial({ color: 0xf5d078, side: THREE.DoubleSide })
+);
+reticle.visible = false;
+scene.add(reticle);
+
+// ════════════════════════════════════════════════════════
+//  DOM
+// ════════════════════════════════════════════════════════
+const overlay  = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const errorMsg = document.getElementById('errorMsg');
+const hint     = document.getElementById('hint');
+const exitBtn  = document.getElementById('exitBtn');
+
+let xrSession  = null;
+let hitTestSrc = null;
+let placed     = false;
+const clock    = new THREE.Clock();
+
+// ─── Старт AR ─────────────────────────────────────────────
+async function startAR() {
+  startBtn.disabled = true;
+  if (!navigator.xr) { showError('WebXR не поддерживается. Нужен Chrome на Android.'); startBtn.disabled=false; return; }
+  const ok = await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+  if (!ok)  { showError('AR не поддерживается на этом устройстве.'); startBtn.disabled=false; return; }
+
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: { root: document.body }
+    });
+
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(xrSession);
+
+    overlay.style.display = 'none';
+    hint.style.display    = 'block';
+    hint.textContent      = '📍 Наведите на пол и нажмите — разместить галерею';
+    exitBtn.style.display = 'block';
+
+    const viewerSpace = await xrSession.requestReferenceSpace('viewer');
+    hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
+
+    renderer.domElement.addEventListener('click', onTap);
+    xrSession.addEventListener('end', onEnd);
+    renderer.setAnimationLoop(onFrame);
+
+  } catch(e) {
+    showError('Ошибка: ' + e.message);
+    startBtn.disabled = false;
+  }
+}
+
+// ─── Тап — разместить галерею ─────────────────────────────
+function onTap() {
+  if (!reticle.visible || placed) return;
+  placed = true;
+
+  galleryRoot.position.copy(reticle.position);
+  floor.position.copy(reticle.position); // тени на уровне пола
+  floor.visible    = true;
+  galleryRoot.visible = true;
   reticle.visible  = false;
-  scene.add(reticle);
 
-  // ─── Состояние ───────────────────────────────────────────────────
-  let xrSession   = null;
-  let hitTestSrc  = null;
-  let cubeSet     = false;        // куб уже установлен?
+  hint.textContent = '🚶 Пройдитесь вдоль галереи!';
+  setTimeout(() => { hint.style.display = 'none'; }, 5000);
+}
 
-  // ─── Анимация куба ───────────────────────────────────────────────
-  let clock = new THREE.Clock();
+// ─── Кадр ─────────────────────────────────────────────────
+function onFrame(time, frame) {
+  if (!frame) return;
+  const refSpace = renderer.xr.getReferenceSpace();
 
-  // ─── Запуск AR ───────────────────────────────────────────────────
-  async function startAR() {
-    startBtn.disabled = true;
-
-    if (!navigator.xr) {
-      showError('WebXR не поддерживается в этом браузере. Используйте Chrome на Android.');
-      startBtn.disabled = false;
-      return;
-    }
-
-    const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-    if (!supported) {
-      showError('AR не поддерживается на этом устройстве/браузере.');
-      startBtn.disabled = false;
-      return;
-    }
-
-    try {
-      xrSession = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay'],
-        domOverlay: { root: document.body }
-      });
-
-      renderer.xr.setReferenceSpaceType('local');
-      await renderer.xr.setSession(xrSession);
-
-      overlay.style.display = 'none';
-      hint.style.display    = 'block';
-      exitBtn.style.display = 'block';
-
-      // Hit-test source
-      const viewerSpace = await xrSession.requestReferenceSpace('viewer');
-      hitTestSrc = await xrSession.requestHitTestSource({ space: viewerSpace });
-
-      // Тап / клик — размещаем куб
-      renderer.domElement.addEventListener('click', placeCube);
-
-      xrSession.addEventListener('end', onSessionEnd);
-      renderer.setAnimationLoop(onFrame);
-
-    } catch(e) {
-      showError('Ошибка запуска AR: ' + e.message);
-      startBtn.disabled = false;
+  if (hitTestSrc && !placed) {
+    const hits = frame.getHitTestResults(hitTestSrc);
+    if (hits.length) {
+      const pose = hits[0].getPose(refSpace);
+      reticle.visible = true;
+      reticle.matrix.fromArray(pose.transform.matrix);
+      reticle.matrix.decompose(reticle.position, reticle.quaternion, reticle.scale);
+    } else {
+      reticle.visible = false;
     }
   }
 
-  // ─── Кадр ────────────────────────────────────────────────────────
-  function onFrame(time, frame) {
-    if (!frame) return;
+  if (placed) {
+    const t = clock.getElapsedTime();
 
-    const refSpace = renderer.xr.getReferenceSpace();
-    const session  = renderer.xr.getSession();
+    // Левитация надписи
+    floatingText.position.y = 1.35 + Math.sin(t * 1.2) * 0.06;
+    floatingText.rotation.y = Math.sin(t * 0.4) * 0.15;
 
-    // Hit-test → двигаем маркер
-    if (hitTestSrc && !cubeSet) {
-      const hits = frame.getHitTestResults(hitTestSrc);
-      if (hits.length > 0) {
-        const pose = hits[0].getPose(refSpace);
-        reticle.visible = true;
-        reticle.matrix.fromArray(pose.transform.matrix);
-        reticle.matrix.decompose(reticle.position, reticle.quaternion, reticle.scale);
-      } else {
-        reticle.visible = false;
-      }
-    }
-
-    // Вращение куба
-    if (cubeGroup.visible) {
-      const delta = clock.getDelta();
-      cube.rotation.y += delta * 0.5;
-    }
-
-    renderer.render(scene, camera);
+    // Пульсация золотого света
+    const glow = floatingText.children.find(c => c.isLight);
+    if (glow) glow.intensity = 1.8 + Math.sin(t * 2.5) * 0.6;
   }
 
-  // ─── Разместить куб ──────────────────────────────────────────────
-  function placeCube() {
-    if (!reticle.visible || cubeSet) return;
+  renderer.render(scene, camera);
+}
 
-    cubeGroup.position.copy(reticle.position);
-    cubeGroup.quaternion.copy(reticle.quaternion);
-    cubeGroup.visible = true;
+// ─── Конец сессии ─────────────────────────────────────────
+function onEnd() {
+  renderer.setAnimationLoop(null);
+  hitTestSrc?.cancel(); hitTestSrc = null;
+  placed = false;
+  galleryRoot.visible = false;
+  reticle.visible = false;
+  floor.visible = false;
+  renderer.domElement.removeEventListener('click', onTap);
+  overlay.style.display = '';
+  hint.style.display = exitBtn.style.display = 'none';
+  startBtn.disabled = false;
+}
 
-    reticle.visible = false;
-    cubeSet = true;
+startBtn.addEventListener('click', startAR);
+exitBtn.addEventListener('click', () => xrSession?.end());
+function showError(m) { errorMsg.textContent = m; errorMsg.style.display = 'block'; }
 
-    hint.textContent = '🚶 Обойдите куб — посмотрите со всех сторон!';
-    setTimeout(() => { hint.style.display = 'none'; }, 4000);
-  }
-
-  // ─── Конец сессии ────────────────────────────────────────────────
-  function onSessionEnd() {
-    renderer.setAnimationLoop(null);
-    hitTestSrc?.cancel();
-    hitTestSrc = null;
-    cubeSet = false;
-    cubeGroup.visible = false;
-    reticle.visible   = false;
-
-    renderer.domElement.removeEventListener('click', placeCube);
-
-    overlay.style.display = '';
-    hint.style.display    = 'none';
-    exitBtn.style.display = 'none';
-    startBtn.disabled     = false;
-    clock.getDelta(); // сбросить
-  }
-
-  // ─── Кнопки ──────────────────────────────────────────────────────
-  startBtn.addEventListener('click', startAR);
-
-  exitBtn.addEventListener('click', () => {
-    xrSession?.end();
-  });
-
-  function showError(msg) {
-    errorMsg.textContent = msg;
-    errorMsg.style.display = 'block';
-  }
-
-  // ─── Ресайз ──────────────────────────────────────────────────────
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
